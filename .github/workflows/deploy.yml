@@ -22,17 +22,18 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            echo "🔹 Moving to app directory"
+            echo "🚀 Starting deployment"
+
             cd /opt/myapp
 
-            echo "🔹 Pulling latest code"
+            echo "📥 Pulling latest code"
             git pull origin main
 
-            echo "🔹 Installing dependencies"
+            echo "📦 Installing dependencies"
             npm install --production
 
-            echo "🔹 Restarting systemd service"
+            echo "♻️ Restarting systemd service"
             sudo systemctl daemon-reload
             sudo systemctl restart myapp
 
-            echo "✅ Deployment complete"
+            echo "✅ Deployment finished successfully"
