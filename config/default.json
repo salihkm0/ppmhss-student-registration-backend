@@ -1,0 +1,10 @@
+{
+  "mongoURI": "mongodb://localhost:27017/student_registration",
+  "jwtSecret": "your-secret-key-change-this",
+  "twilio": {
+    "accountSid": "your-account-sid",
+    "authToken": "your-auth-token",
+    "phoneNumber": "+1234567890",
+    "whatsappNumber": "+14155238886"
+  }
+}
