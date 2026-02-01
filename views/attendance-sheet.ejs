@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Sheet - Room <%= roomNo %></title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; font-size: 12pt; color: #000; background: #fff; }
+        
+        .page { width: 210mm; min-height: 297mm; padding: 5mm 5mm; margin: 0 auto; border: 1px solid #000; }
+        .header { text-align: center; margin-bottom: 10mm; border-bottom: 2px solid #000; padding-bottom: 5mm; }
+        .school-name { font-size:13pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2mm; }
+        .exam-name { font-size: 16pt; font-weight: bold; margin-bottom: 1mm; }
+        .sheet-title { font-size: 15pt; font-weight: bold; margin: 3mm 0; text-transform: uppercase; }
+        .room-info { font-size: 12pt; margin: 2mm 0; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 5mm 0; }
+        th { background: #f0f0f0; border: 1px solid #000; padding: 3mm; text-align: center; font-weight: bold; }
+        td { border: 1px solid #000; padding: 2mm; text-align: center; }
+        
+        .sl-no { width: 5%; }
+        .reg-no { width: 12%; }
+        .student-name { width: 25%; text-align: left; }
+        .class { width: 10%; }
+        .seat-no { width: 8%; }
+        .signature { width: 20%; }
+        .attendance { width: 20%; }
+        
+        .attendance-box { width: 10mm; height: 10mm; border: 1px solid #000; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+        
+        .signature-section { margin-top: 15mm; padding-top: 5mm; border-top: 1px solid #000; display: flex; justify-content: space-between; }
+        .signature-box { text-align: center; width: 45%; }
+        .signature-image { max-width: 80mm; max-height: 25mm; margin-bottom: 2mm; }
+        .signature-name { font-weight: bold; font-size: 11pt; margin-bottom: 1mm; }
+        .signature-title { font-size: 10pt; border-top: 1px solid #000; padding-top: 1mm; margin-top: 1mm; }
+        
+        .footer { margin-top: 5mm; padding-top: 3mm; border-top: 1px dashed #000; font-size: 9pt; text-align: center; }
+        .footer-info { display: flex; justify-content: space-between; margin-bottom: 1mm; }
+        
+        .page-break { page-break-before: always; }
+        
+        @media print {
+            body { margin: 0; padding: 0; background: #fff !important; }
+            .page { width: 210mm; min-height: 297mm; padding: 20mm 15mm; box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+    <% studentPages.forEach((pageStudents, pageIndex) => { %>
+        <div class="page <%= pageIndex > 0 ? 'page-break' : '' %>">
+            <div class="header">
+                <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
+                <div class="school-name">PPMHSS Kottukkara</div>
+                <div class="sheet-title">ATTENDANCE SHEET</div>
+                <div class="room-info">
+                    Room No: <strong><%= roomNo %></strong> | 
+                    Date: <strong>01-03-2026</strong> | 
+                    Time: <strong>10:00 AM - 01:00 PM</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sl-no">SL No</th>
+                        <th class="reg-no">Registration No</th>
+                        <th class="student-name">Name of Candidate</th>
+                        <th class="class">Class</th>
+                        <th class="seat-no">Seat No</th>
+                        <th class="signature">Candidate's Signature</th>
+                        <th class="attendance">Attendance (P/A)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% pageStudents.forEach((student, index) => { 
+                        const slNo = pageIndex * 20 + index + 1;
+                    %>
+                    <tr>
+                        <td class="sl-no"><%= slNo %></td>
+                        <td class="reg-no"><%= student.registrationCode %></td>
+                        <td class="student-name" style="padding-left: 3mm;">
+                            <%= student.name %><br>
+                            <!-- <small style="font-size: 9pt; color: #666;">Father: <%= student.fatherName %></small> -->
+                        </td>
+                        <td class="class">Class <%= student.studyingClass %></td>
+                        <td class="seat-no"><%= student.seatNo %></td>
+                        <td class="signature"></td>
+                        <td class="attendance">
+                            <div class="attendance-box"></div>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+            <!-- <% if (pageIndex === studentPages.length - 1) { %>
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-name">Controller of Examination</div>
+                    <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769959455/IMG_3726_xco7kh.jpg" 
+                         alt="Controller Signature" 
+                         class="signature-image">
+                    <div class="signature-title">Abdul Majeed M</div>
+                    <div class="signature-title">Controller of Examination</div>
+                </div>
+                
+                <div class="signature-box">
+                    <div class="signature-name">Secretary</div>
+                    <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769959455/IMG_3724_qotguc.jpg" 
+                         alt="Secretary Signature" 
+                         class="signature-image">
+                    <div class="signature-title">KT Abdurahman</div>
+                    <div class="signature-title">NMEA KOTTUKKARA</div>
+                </div>
+            </div>
+            <% } %> -->
+
+            <div class="footer">
+                <div class="footer-info">
+                    <div>Page: <strong><%= pageIndex + 1 %> of <%= studentPages.length %></strong></div>
+                    <div>Total Students: <strong><%= totalStudents %></strong></div>
+                    <div>Generated: <%= generationDate %></div>
+                </div>
+                <!-- <div>PPMHSS Kottukkara, Kondotty, Malappuram - 673638 | Phone: 0483 2711374, 2714174</div> -->
+            </div>
+        </div>
+    <% }) %>
+</body>
+</html>

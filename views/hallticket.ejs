@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hall Ticket - NMEA TENDER SCHOLAR 26</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 8mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.2;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .ticket-container {
+            width: 210mm;
+            min-height: 294mm;
+            margin: 0 auto;
+            border: 2px solid #000;
+            position: relative;
+            page-break-inside: avoid;
+            overflow: hidden;
+        }
+        
+        .ticket-content {
+            padding: 10mm;
+        }
+        
+        /* Header Section with Logos */
+        .header-section {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .logo-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 0 15px;
+        }
+        
+        .left-logo, .right-logo {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #000;
+            padding: 4px;
+        }
+        
+        .logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .organization-info {
+            flex: 1;
+            padding: 0 15px;
+        }
+        
+        .organization-name {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+        
+        .school-name {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .school-address {
+            font-size: 9pt;
+            margin-bottom: 2px;
+        }
+        
+        .ticket-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 8px 0 3px 0;
+            text-decoration: underline;
+        }
+        
+        /* Code Display */
+        .code-display {
+            display: flex;
+            justify-content: space-around;
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border: 1px solid #000;
+        }
+        
+        .code-item {
+            text-align: center;
+        }
+        
+        .code-label {
+            font-weight: bold;
+            font-size: 9pt;
+        }
+        
+        .code-value {
+            font-size: 11pt;
+            font-weight: bold;
+            font-family: monospace;
+            margin-top: 3px;
+        }
+        
+        /* Room and Seat Display */
+        .room-display {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border: 2px solid #1a237e;
+            border-radius: 4px;
+        }
+        
+        .room-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .room-label {
+            font-weight: bold;
+            font-size: 10pt;
+            color: #1a237e;
+        }
+        
+        .room-value {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1a237e;
+            margin-top: 4px;
+            font-family: monospace;
+        }
+        
+        /* Section Headings */
+        .section-heading {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 12px 0 6px 0;
+            text-decoration: underline;
+        }
+        
+        /* Four Column Tables */
+        .four-column-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            border: 1px solid #000;
+        }
+        
+        .four-column-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: left;
+            padding: 6px 8px;
+            border: 1px solid #000;
+            width: 25%;
+        }
+        
+        .four-column-table td {
+            padding: 6px 8px;
+            border: 1px solid #000;
+            width: 25%;
+        }
+        
+        /* Venue Section */
+        .venue-section {
+            margin: 12px 0;
+            padding: 8px;
+            border: 1px solid #000;
+            background-color: #f9f9f9;
+            font-size: 9pt;
+        }
+        
+        .venue-heading {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 10pt;
+        }
+        
+        .venue-details {
+            line-height: 1.3;
+        }
+        
+        /* Enhanced Instructions Section */
+        .instructions-container {
+            margin-top: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .instructions-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 12px 0 8px 0;
+            text-decoration: underline;
+        }
+        
+        .instructions-box {
+            border: 1px solid #000;
+            padding: 10px;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        
+        .instruction-item {
+            margin-bottom: 8px;
+            padding-left: 2px;
+            line-height: 1.4;
+            display: flex;
+        }
+        
+        .instruction-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .instruction-number {
+            font-weight: bold;
+            margin-right: 3px;
+        }
+        
+        .instruction-english {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .instruction-malayalam {
+            font-size: 9pt;
+            color: #333;
+            padding-left: 3px;
+            font-style: italic;
+        }
+        
+        /* Important Note Box */
+        .important-note {
+            background-color: #fff8f8;
+            border: 1px solid #c00;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 9pt;
+            text-align: center;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            color: #c00;
+            margin-bottom: 5px;
+        }
+        
+        /* Signature Section */
+        .signature-section {
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 2px solid #000;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+        
+        .signature-label {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 10pt;
+        }
+        
+        .signature-line {
+            width: 180px;
+            height: 20px;
+            margin: 20px auto 8px;
+        }
+        
+        .signature-name {
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+        
+        /* Footer */
+        .footer-section {
+            margin-top: 20px;
+            padding-top: 8px;
+            border-top: 1px dashed #000;
+            text-align: center;
+            font-size: 8pt;
+            color: #555;
+        }
+        
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 60px;
+            color: rgba(0, 0, 0, 0.05);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: -1;
+            white-space: nowrap;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+            }
+            
+            .ticket-container {
+                border: 2px solid #000 !important;
+                margin: 0 auto;
+                box-shadow: none !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-button, .download-button, .back-button {
+                display: none !important;
+            }
+            
+            .four-column-table th {
+                background-color: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .venue-section, .instructions-box {
+                background-color: #f9f9f9 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .important-note {
+                background-color: #fff8f8 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .left-logo, .right-logo {
+                border: 1px solid #000 !important;
+            }
+            
+            .room-display {
+                background-color: #f0f8ff !important;
+                border: 2px solid #1a237e !important;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            text-align: center;
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        
+        .print-button, .download-button {
+            background-color: #000;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            margin: 0 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+        
+        .back-button {
+            background-color: #666;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10pt;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .official-signatures {
+            margin-top: 15mm;
+            padding-top: 5mm;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .official-signature-box {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-image {
+            max-width: 40mm;
+            max-height: 10mm;
+            margin-bottom: 2mm;
+        }
+        
+        .signature-person-name {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 1mm;
+        }
+        
+        .signature-person-title {
+            font-size: 10pt;
+            padding-top: 1mm;
+            margin-top: 1mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="ticket-container">
+        <!-- Watermark -->
+        <div class="watermark">PPMHSS KOTTUKKARA</div>
+        
+        <div class="ticket-content">
+            <!-- Header with Two Logos -->
+            <div class="header-section">
+                <div class="logo-container">
+                    <div class="left-logo">
+                        <!-- School Logo - Using Cloudinary URL -->
+                        <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769946977/school-logo_uugskb.jpg" 
+                             alt="School Logo" 
+                             class="logo-img">
+                    </div>
+                    
+                    <div class="organization-info">
+                        <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
+                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                        <div class="school-address">Kondotty, Malappuram - 673638</div>
+                        <div class="ticket-title">HALL TICKET</div>
+                    </div>
+                    
+                    <div class="right-logo">
+                        <!-- 50th Anniversary Logo - Using Cloudinary URL -->
+                        <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769946976/50th_t44gva.jpg" 
+                             alt="50th Anniversary Logo" 
+                             class="logo-img">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Code Display -->
+            <div class="code-display">
+                <div class="code-item">
+                    <div class="code-label">Application No</div>
+                    <div class="code-value"><%= student.applicationNo || '' %></div>
+                </div>
+                <div class="code-item">
+                    <div class="code-label">Register No</div>
+                    <div class="code-value"><%= student.registrationCode || '' %></div>
+                </div>
+                <div class="code-item">
+                    <div class="code-label">Date of Issue</div>
+                    <div class="code-value"><%= issueDate || '' %></div>
+                </div>
+            </div>
+            
+            <!-- Exam Details Table - 4 Columns -->
+            <div class="section-heading">Examination Details</div>
+            <table class="four-column-table">
+                <tr>
+                    <th>Date of Examination</th>
+                    <td>01-03-2026</td>
+                    <th>Time of Examination</th>
+                    <td>10:00 AM - 11:30 PM</td>
+                </tr>
+                <tr>
+                    <th>Reporting Time</th>
+                    <td>09:30 AM</td>
+                    <th>Exam Duration</th>
+                    <td>1.5 Hours</td>
+                </tr>
+                <tr>
+                    <th>Exam Center</th>
+                    <td>PPM HSS Kottukkara</td>
+                    <th>Room no.</th>
+                    <td><%= student.roomNo || '' %></td>
+                </tr>
+            </table>
+            
+            <!-- Candidate Details Table - 4 Columns -->
+            <div class="section-heading">Candidate Details</div>
+            <table class="four-column-table">
+                <tr>
+                    <th>Name of Candidate</th>
+                    <td><%= student.name || '' %></td>
+                    <th>Father's Name</th>
+                    <td><%= student.fatherName || '' %></td>
+                </tr>
+                <tr>
+                    <th>Class</th>
+                    <td>Class <%= student.studyingClass || '' %></td>
+                    <th>Gender</th>
+                    <td><%= student.gender || '' %></td>
+                </tr>
+                <tr>
+                    <th>school</th>
+                    <td><%= student.schoolName || '' %></td>
+                    <th>Medium of Exam</th>
+                    <td><%= student.medium || '' %></td>
+                </tr>
+            </table>
+            
+            <!-- Official Signatures Section -->
+            <div class="official-signatures">
+                <div class="official-signature-box">
+                    <div class="signature-person-name">Candidate's Signature</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-name"><%= student.name || 'Candidate Name' %></div>
+                </div>
+                <div class="official-signature-box">
+                    <div class="signature-person-name">Controller of Examination</div>
+                    <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769959455/IMG_3726_xco7kh.jpg" 
+                         alt="Controller Signature" 
+                         class="signature-image">
+                    <div class="signature-person-title">Abdul Majeed M</div>
+                    <div class="signature-person-title">Controller of Examination</div>
+                </div>
+                
+                <div class="official-signature-box">
+                    <div class="signature-person-name">Secretary</div>
+                    <img src="https://res.cloudinary.com/dmjqgjcut/image/upload/v1769959455/IMG_3724_qotguc.jpg" 
+                         alt="Secretary Signature" 
+                         class="signature-image">
+                    <div class="signature-person-title">KT Abdurahman</div>
+                    <div class="signature-person-title">NMEA KOTTUKKARA</div>
+                </div>
+            </div>
+            
+            <!-- Important Instructions Section -->
+            <div class="section-heading">Important Instructions</div>
+            <div class="instructions-box">
+                <div class="instruction-item">
+                    <span class="instruction-number">1.</span>
+                    <div class="instruction-english">
+                        It is mandatory to bring the original Aadhaar card.
+                    </div>
+                    <div class="instruction-malayalam">
+                        (ഒറിജിനൽ ആധാർ കാർഡ് നിർബന്ധമായും കൊണ്ടുവരണം.)
+                    </div>
+                </div>    
+                <div class="instruction-item">
+                    <span class="instruction-number">3.</span>
+                    <div class="instruction-english">
+                        You must report to school half an hour before the exam begins.
+                    </div>
+                    <div class="instruction-malayalam">
+                        (പരീക്ഷ ആരംഭിക്കുന്നതിന് അര മണിക്കൂർ മുമ്പ് സ്കൂളിൽ റിപ്പോർട്ട് ചെയ്യണം.)
+                    </div>
+                </div>
+                
+                <div class="instruction-item">
+                    <span class="instruction-number">4.</span>
+                    <div class="instruction-english">
+                        Nothing other than the pen required for writing the exam will be allowed into the exam hall.
+                    </div>
+                    <div class="instruction-malayalam">
+                        (പരീക്ഷ എഴുതാൻ ആവശ്യമായ പേന ഒഴികെ മറ്റൊന്നും പരീക്ഷാ ഹാളിലേക്ക് അനുവദിക്കില്ല.)
+                    </div>
+                </div>
+                
+                <div class="instruction-item">
+                    <span class="instruction-number">5.</span>
+                    <div class="instruction-english">
+                        Latecomers will not be permitted to enter the examination hall.
+                    </div>
+                    <div class="instruction-malayalam">
+                        (താമസിച്ച് വരുന്നവർക്ക് പരീക്ഷാ ഹാളിൽ പ്രവേശനം അനുവദിക്കില്ല.)
+                    </div>
+                </div>
+                
+                <div class="instruction-item">
+                    <span class="instruction-number">6.</span>
+                    <div class="instruction-english">
+                        Electronic devices (mobile phones, calculators, smart watches) are strictly prohibited.
+                    </div>
+                    <div class="instruction-malayalam">
+                        (ഇലക്ട്രോണിക് ഉപകരണങ്ങൾ (മൊബൈൽ ഫോണുകൾ, കാൽക്കുലേറ്ററുകൾ, സ്മാർട്ട് വാച്ചുകൾ) കർശനമായി വിലക്കപ്പെട്ടതാണ്.)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer-section">
+                <strong>Note:</strong> This is an auto-generated hall ticket. Any discrepancy should be reported immediately to the Controller of Examination.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons (Only for Preview) -->
+    <% if (isPreview) { %>
+    <div class="action-buttons no-print">
+        <button class="print-button" onclick="window.print()">🖨️ Print Hall Ticket</button>
+        <button class="download-button" onclick="downloadAsPDF()">📥 Download PDF</button>
+        <a href="<%= backUrl %>" class="back-button">← Back to Home</a>
+    </div>
+    <% } %>
+    
+    <script>
+        function downloadAsPDF() {
+            window.print();
+        }
+        
+        // Auto-print if specified
+        <% if (autoPrint) { %>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        });
+        <% } %>
+    </script>
+</body>
+</html>

@@ -2,45 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
 const { body, validationResult } = require('express-validator');
-const dotenv = require('dotenv');
-
-dotenv.config();
-
-// Initialize Twilio client for WhatsApp only
-let twilioClient = null;
-let whatsappEnabled = false;
-
-try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    
-    console.log("Twilio Account SID:", accountSid ? "Provided" : "Not provided");
-    console.log("Twilio Auth Token:", authToken ? "Provided" : "Not provided");
-    
-    if (accountSid && authToken && 
-        accountSid !== 'your_account_sid' && 
-        authToken !== 'your_auth_token_here') {
-        
-        const twilio = require('twilio');
-        twilioClient = twilio(accountSid, authToken);
-        
-        // Check if WhatsApp number is configured
-        if (process.env.TWILIO_WHATSAPP_NUMBER) {
-            whatsappEnabled = true;
-            console.log('✅ WhatsApp notifications enabled');
-            console.log('📱 WhatsApp Number:', process.env.TWILIO_WHATSAPP_NUMBER);
-        } else {
-            console.log('⚠️ WhatsApp number not configured in .env');
-        }
-    } else {
-        console.log('⚠️ Twilio credentials not properly configured.');
-        console.log('ℹ️ WhatsApp notifications will be simulated.');
-    }
-} catch (error) {
-    console.log('❌ Twilio initialization error:', error.message);
-    twilioClient = null;
-    whatsappEnabled = false;
-}
 
 // Validation middleware
 const validateStudent = [
@@ -73,96 +34,37 @@ const validateStudent = [
     body('address.village').notEmpty().withMessage('Village name is required').trim(),
 ];
 
-// Helper function to send WhatsApp notifications
-const sendWhatsAppNotification = async (student) => {
-    if (!whatsappEnabled || !twilioClient) {
-        // Simulate WhatsApp notification for development
-        console.log('='.repeat(60));
-        console.log('💬 WHATSAPP NOTIFICATION (SIMULATED)');
-        console.log('='.repeat(60));
-        console.log(`To: +91${student.phoneNo}`);
-        console.log(`Student: ${student.name}`);
-        console.log(`Application No: ${student.applicationNo}`);
-        console.log(`Registration Code: ${student.registrationCode}`);
-        console.log('='.repeat(60));
-        
-        // Log to file
-        const fs = require('fs');
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            type: 'WhatsApp',
-            status: 'simulated',
-            student: {
-                name: student.name,
-                phone: student.phoneNo,
-                applicationNo: student.applicationNo,
-                registrationCode: student.registrationCode
-            }
-        };
-        
-        fs.appendFileSync('whatsapp_notifications.log', JSON.stringify(logEntry) + '\n');
-        return;
-    }
-
-    // Real WhatsApp message using Twilio
-    const messageBody = `Dear ${student.name}, your registration is successful! 
-
-📝 Application No: ${student.applicationNo}
-🔑 Registration Code: ${student.registrationCode}
-
-Keep this information safe for future reference.`;
-
-    try {
-        console.log(`📤 Sending WhatsApp to: +91${student.phoneNo}`);
-        
-        const message = await twilioClient.messages.create({
-            body: messageBody,
-            from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-            to: `whatsapp:+91${student.phoneNo}`
-        });
-        
-        console.log(`✅ WhatsApp message sent! Message SID: ${message.sid}`);
-        
-        // Log success
-        const fs = require('fs');
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            type: 'WhatsApp',
-            status: 'sent',
-            messageSid: message.sid,
-            student: {
-                name: student.name,
-                phone: student.phoneNo,
-                applicationNo: student.applicationNo,
-                registrationCode: student.registrationCode
-            }
-        };
-        
-        fs.appendFileSync('whatsapp_notifications.log', JSON.stringify(logEntry) + '\n');
-        
-    } catch (error) {
-        console.error('❌ WhatsApp sending failed:', error.message);
-        
-        // Log error
-        const fs = require('fs');
-        const logEntry = {
-            timestamp: new Date().toISOString(),
-            type: 'WhatsApp',
-            status: 'failed',
-            error: error.message,
-            student: {
-                name: student.name,
-                phone: student.phoneNo,
-                applicationNo: student.applicationNo,
-                registrationCode: student.registrationCode
-            }
-        };
-        
-        fs.appendFileSync('whatsapp_notifications.log', JSON.stringify(logEntry) + '\n');
-        
-        // Don't throw error - registration should succeed even if WhatsApp fails
-        console.log('⚠️ Registration saved but WhatsApp notification failed');
-    }
+// Helper function to log registration notification
+const logRegistrationNotification = async (student) => {
+    console.log('='.repeat(60));
+    console.log('📋 REGISTRATION NOTIFICATION');
+    console.log('='.repeat(60));
+    console.log(`Student: ${student.name}`);
+    console.log(`Phone: ${student.phoneNo}`);
+    console.log(`Application No: ${student.applicationNo}`);
+    console.log(`Registration Code: ${student.registrationCode}`);
+    console.log(`Room No: ${student.roomNo}`);
+    console.log(`Seat No: ${student.seatNo}`);
+    console.log(`Aadhaar: ${student.aadhaarNo}`);
+    console.log('='.repeat(60));
+    
+    // Log to file
+    const fs = require('fs');
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        type: 'Registration',
+        student: {
+            name: student.name,
+            phone: student.phoneNo,
+            applicationNo: student.applicationNo,
+            registrationCode: student.registrationCode,
+            roomNo: student.roomNo,
+            seatNo: student.seatNo,
+            aadhaarNo: student.aadhaarNo
+        }
+    };
+    
+    fs.appendFileSync('registration_log.json', JSON.stringify(logEntry) + '\n');
 };
 
 // Get next application number
@@ -203,6 +105,125 @@ router.get('/next-registration-code', async (req, res) => {
     }
 });
 
+// Get next room allocation (for preview)
+router.get('/next-room-allocation', async (req, res) => {
+    try {
+        const allocation = await Student.getNextRoomAllocation();
+        res.json({
+            success: true,
+            data: allocation
+        });
+    } catch (error) {
+        console.error('Error getting next room allocation:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get next room allocation'
+        });
+    }
+});
+
+// Get all students for a phone number
+router.get('/phone/:phoneNo', async (req, res) => {
+    try {
+        const { phoneNo } = req.params;
+        
+        // Validate phone number format
+        if (!/^\d{10}$/.test(phoneNo)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid phone number format. Must be 10 digits.'
+            });
+        }
+        
+        const students = await Student.find({ phoneNo }).select('-__v').sort({ createdAt: -1 });
+        
+        if (!students || students.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No students found for this phone number'
+            });
+        }
+        
+        res.json({
+            success: true,
+            count: students.length,
+            data: students
+        });
+    } catch (error) {
+        console.error('Error fetching students by phone:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
+// Get room distribution
+router.get('/rooms/distribution', async (req, res) => {
+    try {
+        const distribution = await Student.getRoomDistribution();
+        const totalStudents = await Student.countDocuments();
+        
+        res.json({
+            success: true,
+            data: {
+                distribution,
+                totalStudents,
+                roomsOccupied: distribution.length,
+                studentsPerRoom: 20
+            }
+        });
+    } catch (error) {
+        console.error('Error getting room distribution:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get room distribution'
+        });
+    }
+});
+
+// Get students by room number
+router.get('/rooms/:roomNo', async (req, res) => {
+    try {
+        const roomNo = parseInt(req.params.roomNo);
+        
+        if (isNaN(roomNo) || roomNo < 1) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid room number'
+            });
+        }
+        
+        const students = await Student.find({ roomNo })
+            .select('name registrationCode applicationNo seatNo studyingClass phoneNo')
+            .sort({ seatNo: 1 });
+        
+        if (!students || students.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No students found in this room'
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                roomNo,
+                studentCount: students.length,
+                capacity: 20,
+                availableSeats: 20 - students.length,
+                students
+            }
+        });
+    } catch (error) {
+        console.error('Error getting students by room:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
 // Register new student
 router.post('/register', validateStudent, async (req, res) => {
     try {
@@ -227,15 +248,9 @@ router.post('/register', validateStudent, async (req, res) => {
             });
         }
 
-        // Check if phone already exists
-        const existingPhone = await Student.findOne({ phoneNo: req.body.phoneNo });
-        if (existingPhone) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Phone number already registered' 
-            });
-        }
-
+        // Get room allocation for preview
+        const allocation = await Student.getNextRoomAllocation();
+        
         // Create new student
         const studentData = { ...req.body };
         const student = new Student(studentData);
@@ -245,12 +260,20 @@ router.post('/register', validateStudent, async (req, res) => {
             applicationNo: student.applicationNo,
             registrationCode: student.registrationCode,
             name: student.name,
-            phone: student.phoneNo
+            phone: student.phoneNo,
+            roomNo: student.roomNo,
+            seatNo: student.seatNo,
+            aadhaarNo: student.aadhaarNo
         });
 
-        // Send WhatsApp notification in background
-        sendWhatsAppNotification(student).catch(err => {
-            console.log('Background WhatsApp error:', err.message);
+        // Count registrations from this phone number
+        const registrationsFromPhone = await Student.countDocuments({ 
+            phoneNo: student.phoneNo 
+        });
+
+        // Log registration notification
+        logRegistrationNotification(student).catch(err => {
+            console.log('Background logging error:', err.message);
         });
 
         res.status(201).json({
@@ -259,7 +282,17 @@ router.post('/register', validateStudent, async (req, res) => {
             data: {
                 applicationNo: student.applicationNo,
                 registrationCode: student.registrationCode,
-                name: student.name
+                name: student.name,
+                fatherName: student.fatherName,
+                phoneNo: student.phoneNo,
+                roomNo: student.roomNo,
+                seatNo: student.seatNo,
+                studyingClass: student.studyingClass,
+                medium: student.medium,
+                schoolName: student.schoolName,
+                aadhaarNo: student.aadhaarNo,
+                registrationsFromPhone: registrationsFromPhone,
+                timestamp: new Date().toISOString()
             }
         });
     } catch (error) {
@@ -268,6 +301,22 @@ router.post('/register', validateStudent, async (req, res) => {
         // Handle duplicate key errors
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
+            if (field === 'applicationNo') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Application number already exists'
+                });
+            } else if (field === 'registrationCode') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Registration code already exists'
+                });
+            } else if (field === 'aadhaarNo') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Aadhaar number already registered'
+                });
+            }
             return res.status(400).json({
                 success: false,
                 error: `${field} already exists`
@@ -355,13 +404,193 @@ router.post('/verify', async (req, res) => {
     }
 });
 
+// ==================== HALL TICKET ROUTES ====================
+
+// Update the hall ticket routes in studentRouter.js:
+
+// Preview hall ticket
+router.get('/:code/hallticket/preview', async (req, res) => {
+    try {
+        const student = await Student.findOne({ 
+            $or: [
+                { registrationCode: req.params.code },
+                { applicationNo: req.params.code }
+            ]
+        }).select('-__v').lean(); // Use lean() for plain JavaScript object
+        
+        if (!student) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Student not found' 
+            });
+        }
+        
+        // Format dates
+        const issueDate = new Date().toLocaleDateString('en-GB');
+        
+        // Ensure address exists
+        if (!student.address) {
+            student.address = {
+                houseName: 'Not provided',
+                place: 'Not provided',
+                postOffice: 'Not provided',
+                pinCode: 'XXXXXX',
+                localBodyType: '',
+                localBodyName: 'Not provided'
+            };
+        }
+        
+        // Ensure roomNo and seatNo exist
+        student.roomNo = student.roomNo || 'To be assigned';
+        student.seatNo = student.seatNo || 'To be assigned';
+        
+        // Render the hall ticket
+        res.render('hallticket', {
+            student: student,
+            issueDate: issueDate,
+            isPreview: true,
+            backUrl: '/',
+            autoPrint: req.query.print === 'true'
+        });
+        
+    } catch (error) {
+        console.error('Hall ticket preview error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Server error' 
+        });
+    }
+});
+
+// Download hall ticket (auto-print)
+router.get('/:code/hallticket/download', async (req, res) => {
+    try {
+        const student = await Student.findOne({ 
+            $or: [
+                { registrationCode: req.params.code },
+                { applicationNo: req.params.code }
+            ]
+        }).select('-__v').lean(); // Use lean() for plain JavaScript object
+        
+        if (!student) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Student not found' 
+            });
+        }
+        
+        // Format dates
+        const issueDate = new Date().toLocaleDateString('en-GB');
+        
+        // Ensure address exists
+        if (!student.address) {
+            student.address = {
+                houseName: 'Not provided',
+                place: 'Not provided',
+                postOffice: 'Not provided',
+                pinCode: 'XXXXXX',
+                localBodyType: '',
+                localBodyName: 'Not provided'
+            };
+        }
+        
+        // Ensure roomNo and seatNo exist
+        student.roomNo = student.roomNo || 'To be assigned';
+        student.seatNo = student.seatNo || 'To be assigned';
+        
+        // Render the hall ticket with auto-print
+        res.render('hallticket', {
+            student: student,
+            issueDate: issueDate,
+            isPreview: false,
+            autoPrint: true
+        });
+        
+    } catch (error) {
+        console.error('Hall ticket download error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Server error' 
+        });
+    }
+});
+// Get hall ticket by phone number (for students who don't remember code)
+router.post('/hallticket/by-phone', async (req, res) => {
+    try {
+        const { phoneNo } = req.body;
+        
+        if (!phoneNo) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Phone number is required' 
+            });
+        }
+        
+        const students = await Student.find({ phoneNo }).select('-__v').sort({ createdAt: -1 });
+        
+        if (!students || students.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'No registrations found for this phone number' 
+            });
+        }
+        
+        // Return list of registrations with hall ticket links
+        const registrations = students.map(student => ({
+            name: student.name,
+            applicationNo: student.applicationNo,
+            registrationCode: student.registrationCode,
+            class: student.studyingClass,
+            roomNo: student.roomNo,
+            seatNo: student.seatNo,
+            hallticketPreview: `/api/students/${student.registrationCode}/hallticket/preview`,
+            hallticketDownload: `/api/students/${student.registrationCode}/hallticket/download`
+        }));
+        
+        res.json({
+            success: true,
+            message: 'Registrations found',
+            count: students.length,
+            data: registrations
+        });
+        
+    } catch (error) {
+        console.error('Hall ticket by phone error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Server error' 
+        });
+    }
+});
+
+// ==================== END HALL TICKET ROUTES ====================
+
 // Get all students (for testing/debugging)
 router.get('/', async (req, res) => {
     try {
-        const students = await Student.find().select('-__v').limit(10);
+        const { roomNo, page = 1, limit = 50 } = req.query;
+        const query = {};
+        
+        if (roomNo && !isNaN(roomNo)) {
+            query.roomNo = parseInt(roomNo);
+        }
+        
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        
+        const students = await Student.find(query)
+            .select('-__v')
+            .sort({ registrationDate: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+            
+        const total = await Student.countDocuments(query);
+        
         res.json({
             success: true,
             count: students.length,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / parseInt(limit)),
             data: students
         });
     } catch (error) {
@@ -378,8 +607,7 @@ router.get('/health', (req, res) => {
     res.json({
         success: true,
         message: 'Student registration API is running',
-        timestamp: new Date().toISOString(),
-        whatsapp: whatsappEnabled ? 'Enabled' : 'Disabled/Simulated'
+        timestamp: new Date().toISOString()
     });
 });
 

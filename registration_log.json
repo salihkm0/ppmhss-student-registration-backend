@@ -1,0 +1,3 @@
+{"timestamp":"2026-02-01T13:10:39.474Z","type":"Registration","student":{"name":"Muhammed Salih km","phone":"8157024638","applicationNo":"APP26020001","registrationCode":"PPM1000","roomNo":1,"seatNo":1,"aadhaarNo":"123456789012"}}
+{"timestamp":"2026-02-01T14:05:54.544Z","type":"Registration","student":{"name":"Tester","phone":"3434343434","applicationNo":"APP26020002","registrationCode":"PPM1001","roomNo":1,"seatNo":1,"aadhaarNo":"223344556677"}}
+{"timestamp":"2026-02-01T16:56:51.338Z","type":"Registration","student":{"name":"Tester q","phone":"1234567890","applicationNo":"APP26020003","registrationCode":"PPM1002","roomNo":"1","seatNo":"3","aadhaarNo":"345543425424"}}

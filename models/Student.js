@@ -5,13 +5,11 @@ const studentSchema = new mongoose.Schema({
         type: String,
         unique: true,
         index: true
-        // Removed required: true since it's auto-generated
     },
     registrationCode: {
         type: String,
         unique: true,
         index: true
-        // Removed required: true since it's auto-generated
     },
     name: {
         type: String,
@@ -55,6 +53,7 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Phone number is required'],
         match: [/^\d{10}$/, 'Please enter a valid 10-digit phone number']
+        // Removed unique: true to allow multiple students with same phone number
     },
     address: {
         houseName: {
@@ -101,7 +100,17 @@ const studentSchema = new mongoose.Schema({
         type: String,
         enum: ['Registered'],
         default: 'Registered'
-    }
+    },
+    roomNo: {
+        type: String,
+        required: false,
+        default: ''
+    },
+    seatNo: {
+        type: String,
+        required: false,
+        default: ''
+    },
 }, {
     timestamps: true
 });
@@ -156,6 +165,18 @@ studentSchema.pre('save', async function(next) {
             this.applicationNo = `APP${year}${month}${String(nextNumber).padStart(4, '0')}`;
         }
         
+        // Calculate room number and seat number
+        if (!this.roomNo || !this.seatNo) {
+            const totalStudents = await this.constructor.countDocuments();
+            const studentsPerRoom = 20; // 20 students per room
+            
+            // Room number calculation (1-based)
+            this.roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
+            
+            // Seat number calculation (1-20 per room)
+            this.seatNo = (totalStudents % studentsPerRoom) + 1;
+        }
+        
         next();
     } catch (error) {
         console.error('Error generating codes:', error);
@@ -169,6 +190,10 @@ studentSchema.index({ aadhaarNo: 1 });
 studentSchema.index({ status: 1 });
 studentSchema.index({ createdAt: -1 });
 studentSchema.index({ registrationCode: 1 });
+studentSchema.index({ roomNo: 1 });
+studentSchema.index({ seatNo: 1 });
+studentSchema.index({ roomNo: 1, seatNo: 1 });
+studentSchema.index({ phoneNo: 1, createdAt: -1 });
 
 // Static method to get next application number
 studentSchema.statics.getNextApplicationNo = async function() {
@@ -221,6 +246,78 @@ studentSchema.statics.getNextRegistrationCode = async function() {
         return `PPM${nextNumber}`;
     } catch (error) {
         console.error('Error getting next registration code:', error);
+        throw error;
+    }
+};
+
+// Static method to get room and seat allocation
+studentSchema.statics.getNextRoomAllocation = async function() {
+    try {
+        const totalStudents = await this.countDocuments();
+        const studentsPerRoom = 20; // 20 students per room
+        
+        const roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
+        const seatNo = (totalStudents % studentsPerRoom) + 1;
+        
+        return {
+            roomNo,
+            seatNo,
+            totalStudents
+        };
+    } catch (error) {
+        console.error('Error getting room allocation:', error);
+        throw error;
+    }
+};
+
+// Static method to get room distribution
+studentSchema.statics.getRoomDistribution = async function() {
+    try {
+        const distribution = await this.aggregate([
+            {
+                $group: {
+                    _id: "$roomNo",
+                    count: { $sum: 1 },
+                    students: {
+                        $push: {
+                            name: "$name",
+                            registrationCode: "$registrationCode",
+                            applicationNo: "$applicationNo",
+                            seatNo: "$seatNo"
+                        }
+                    }
+                }
+            },
+            { $sort: { _id: 1 } },
+            {
+                $project: {
+                    roomNo: "$_id",
+                    count: 1,
+                    students: {
+                        $sortArray: { input: "$students", sortBy: { seatNo: 1 } }
+                    },
+                    _id: 0
+                }
+            }
+        ]);
+        
+        return distribution;
+    } catch (error) {
+        console.error('Error getting room distribution:', error);
+        throw error;
+    }
+};
+
+// Method to get all students by phone number
+studentSchema.statics.getStudentsByPhone = async function(phoneNo) {
+    try {
+        const students = await this.find({ phoneNo })
+            .sort({ createdAt: -1 })
+            .select('-__v');
+        
+        return students;
+    } catch (error) {
+        console.error('Error getting students by phone:', error);
         throw error;
     }
 };

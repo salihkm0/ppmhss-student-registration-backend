@@ -9,14 +9,19 @@
     "setup-admin": "node setup-admin.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^7.5.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "twilio": "^4.14.0",
-    "bcryptjs": "^2.4.3",
+    "ejs": "^4.0.1",
+    "ejs-cli": "^2.2.3",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "html-pdf": "^3.0.1",
     "jsonwebtoken": "^9.0.2",
-    "express-validator": "^7.0.1"
+    "mongoose": "^7.5.0",
+    "pdfkit": "^0.17.2",
+    "puppeteer": "^24.36.1",
+    "twilio": "^4.14.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

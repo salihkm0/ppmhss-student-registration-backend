@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Slips</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            background-color: white;
+        }
+        
+        .page {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+            page-break-after: always;
+        }
+        
+        .slips-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 0;
+            height: 100%;
+        }
+        
+        .slip {
+            border: 0.5mm solid #000;
+            padding: 4mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 59.4mm;
+        }
+        
+        .header {
+            margin-bottom: 3mm;
+            width: 100%;
+        }
+        
+        .school-name {
+            font-size: 12pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+            line-height: 1.2;
+        }
+        
+        .exam-title {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 3mm;
+            text-decoration: underline;
+        }
+        
+        .details {
+            width: 100%;
+            margin: 2mm 0;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1mm;
+            text-align: left;
+            border-bottom: 0.2mm dotted #666;
+            padding-bottom: 0.5mm;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            min-width: 25mm;
+        }
+        
+        .detail-value {
+            text-align: right;
+            flex: 1;
+        }
+        
+        .name-section {
+            margin: 4mm 0 2mm 0;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .name-label {
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+        
+        .student-name {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 2mm;
+            padding: 1mm;
+            border-top: 0.5mm solid #000;
+            border-bottom: 0.5mm solid #000;
+            letter-spacing: 0.5pt;
+        }
+        
+        .separator {
+            width: 100%;
+            border-top: 0.5mm dashed #666;
+            margin: 3mm 0;
+        }
+        
+        .footer {
+            margin-top: auto;
+            font-size: 9pt;
+            color: #666;
+            width: 100%;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        /* Add a subtle background pattern for authenticity */
+        .slip::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(to right, rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 5mm 5mm;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            .no-print {
+                display: none;
+            }
+            
+            .slip {
+                border: 0.5mm solid #000 !important;
+            }
+            
+            /* Ensure each slip has its own space */
+            .slip {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="slips-container">
+            <% students.forEach((student, index) => { %>
+            <div class="slip">
+                <div class="header">
+                    <div class="school-name">
+                        Al Madrassathul Falahiyya Kalarundi
+                    </div>
+                    <div class="exam-title">
+                        Examination <%= academicYear %>
+                    </div>
+                </div>
+                
+                <div class="details">
+                    <div class="detail-row">
+                        <span class="detail-label">Class:</span>
+                        <span class="detail-value"><%= student.studyingClass %></span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">Roll No:</span>
+                        <span class="detail-value"><%= student.rollNo || (index + 1) %></span>
+                    </div>
+                    
+                    <% if (student.registrationCode) { %>
+                    <div class="detail-row">
+                        <span class="detail-label">Reg No:</span>
+                        <span class="detail-value"><%= student.registrationCode %></span>
+                    </div>
+                    <% } %>
+                    
+                    <% if (student.applicationNo) { %>
+                    <div class="detail-row">
+                        <span class="detail-label">App No:</span>
+                        <span class="detail-value"><%= student.applicationNo %></span>
+                    </div>
+                    <% } %>
+                </div>
+                
+                <div class="separator"></div>
+                
+                <div class="name-section">
+                    <div class="name-label">Name:</div>
+                    <div class="student-name">
+                        <%= student.name.toUpperCase() %>
+                    </div>
+                    
+                    <% if (student.fatherName) { %>
+                    <div style="margin-top: 2mm; font-size: 10pt;">
+                        Father: <%= student.fatherName %>
+                    </div>
+                    <% } %>
+                </div>
+                
+                <div class="footer">
+                    <div>Signature: _________________</div>
+                    <div style="font-size: 8pt; margin-top: 1mm;">
+                        Official Use Only
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Page break after 10 slips -->
+            <% if ((index + 1) % 10 === 0 && (index + 1) < students.length) { %>
+                </div>
+            </div>
+            <div class="page page-break">
+                <div class="slips-container">
+            <% } %>
+            <% }) %>
+        </div>
+    </div>
+</body>
+</html>
