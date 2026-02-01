@@ -4,17 +4,13 @@ const Student = require("../models/Student");
 const Admin = require("../models/Admin");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
+const puppeteer = require("puppeteer");
 const path = require('path');
-const { default: puppeteer } = require("puppeteer");
 
 // Authentication middleware
 const auth = (req, res, next) => {
-  // Get token from header
   const token = req.header("x-auth-token");
 
-  // Check if no token
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -23,13 +19,10 @@ const auth = (req, res, next) => {
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "your-secret-key",
     );
-
-    // Add admin from payload
     req.admin = decoded;
     next();
   } catch (error) {
@@ -40,12 +33,11 @@ const auth = (req, res, next) => {
   }
 };
 
-// Admin login (updated to allow login with username OR email)
+// Admin login
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Validate input
     if (!username || !password) {
       return res.status(400).json({
         success: false,
@@ -53,7 +45,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Find admin by username OR email
     const admin = await Admin.findOne({
       $or: [{ username: username }, { email: username.toLowerCase() }],
     });
@@ -65,7 +56,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -74,7 +64,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Create token
     const token = jwt.sign(
       { id: admin._id, username: admin.username, role: admin.role },
       process.env.JWT_SECRET || "your-secret-key",
@@ -100,12 +89,11 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Create default admin if doesn't exist (for initial setup)
+// Create default admin
 router.post("/setup", async (req, res) => {
   try {
     const { username, password, email } = req.body;
 
-    // Check if admin already exists
     const existingAdmin = await Admin.findOne({ username });
     if (existingAdmin) {
       return res.status(400).json({
@@ -114,11 +102,9 @@ router.post("/setup", async (req, res) => {
       });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create admin
     const admin = new Admin({
       username,
       password: hashedPassword,
@@ -141,35 +127,30 @@ router.post("/setup", async (req, res) => {
   }
 });
 
-// Get dashboard stats (protected)
+// Get dashboard stats
 router.get("/dashboard/stats", auth, async (req, res) => {
   try {
     const totalStudents = await Student.countDocuments();
 
-    // Get recent registrations
     const recentStudents = await Student.find()
       .sort({ createdAt: -1 })
       .limit(10)
       .select("name registrationCode applicationNo roomNo seatNo createdAt");
 
-    // Get gender distribution
     const genderStats = await Student.aggregate([
       { $group: { _id: "$gender", count: { $sum: 1 } } },
     ]);
 
-    // Get class-wise distribution
     const classStats = await Student.aggregate([
       { $group: { _id: "$studyingClass", count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]);
 
-    // Get room-wise distribution
     const roomStats = await Student.aggregate([
       { $group: { _id: "$roomNo", count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]);
 
-    // Get registration count by date (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -204,7 +185,7 @@ router.get("/dashboard/stats", auth, async (req, res) => {
   }
 });
 
-// Get all students with pagination (protected)
+// Get all students with pagination
 router.get("/students", auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -215,7 +196,6 @@ router.get("/students", auth, async (req, res) => {
     const classFilter = req.query.class || "";
     const roomFilter = req.query.room || "";
 
-    // Build query
     let query = {};
 
     if (search) {
@@ -264,7 +244,7 @@ router.get("/students", auth, async (req, res) => {
   }
 });
 
-// Delete student (protected)
+// Delete student
 router.delete("/students/:id", auth, async (req, res) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
@@ -289,21 +269,19 @@ router.delete("/students/:id", auth, async (req, res) => {
   }
 });
 
-// Export data (protected)
+// Export data
 router.get("/export", auth, async (req, res) => {
   try {
     const students = await Student.find()
       .select("-__v")
       .sort({ roomNo: 1, seatNo: 1 });
 
-    // Set headers for CSV download
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=students_${Date.now()}.csv`,
     );
 
-    // CSV header
     const headers = [
       "Registration Code",
       "Application No",
@@ -327,7 +305,6 @@ router.get("/export", auth, async (req, res) => {
       "Registration Date",
     ].join(",");
 
-    // CSV rows
     const rows = students
       .map((student) => {
         return [
@@ -353,7 +330,6 @@ router.get("/export", auth, async (req, res) => {
           new Date(student.createdAt).toLocaleDateString("en-IN"),
         ]
           .map((field) => {
-            // Escape quotes and wrap in quotes
             const fieldStr = String(field || "").replace(/"/g, '""');
             return `"${fieldStr}"`;
           })
@@ -371,7 +347,7 @@ router.get("/export", auth, async (req, res) => {
   }
 });
 
-// Generate PDF for room-wise attendance sheet
+// Generate attendance sheet (HTML for browser printing)
 router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
   try {
     const roomNo = parseInt(req.params.roomNo);
@@ -402,69 +378,21 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
       studentPages.push(students.slice(i, i + studentsPerPage));
     }
 
-    // Prepare data for EJS template
+    // Prepare data for EJS template - SIMILAR TO HALL TICKET
     const templateData = {
       roomNo,
       studentPages: studentPages,
       totalStudents: students.length,
-      generationDate: new Date().toLocaleDateString('en-GB') + ' ' + 
-                     new Date().toLocaleTimeString('en-GB', { 
-                       hour: '2-digit', 
-                       minute: '2-digit' 
-                     })
+      generationDate: new Date().toLocaleDateString('en-IN'),
+      examDate: '01-03-2026',
+      examTime: '10:00 AM - 11:30 PM',
+      isPreview: req.query.preview !== 'false',
+      autoPrint: req.query.print === 'true'
     };
 
-    // Render HTML using EJS
-    const html = await new Promise((resolve, reject) => {
-      req.app.render('attendance-sheet', templateData, (err, html) => {
-        if (err) {
-          console.error('EJS rendering error:', err);
-          reject(err);
-        } else {
-          resolve(html);
-        }
-      });
-    });
-
-    // Try to generate PDF with Puppeteer
-    try {
-      const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-
-      const page = await browser.newPage();
-      
-      // Set HTML content
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '15mm',
-          left: '15mm'
-        }
-      });
-
-      await browser.close();
-
-      // Send PDF
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="Room-${roomNo}-Attendance.pdf"`);
-      res.send(pdfBuffer);
-
-    } catch (puppeteerError) {
-      console.error('Puppeteer error, falling back to HTML:', puppeteerError);
-      
-      // Fallback: Send HTML if PDF generation fails
-      res.setHeader('Content-Type', 'text/html');
-      res.send(html);
-    }
-
+    // Render HTML template - let browser handle PDF conversion
+    res.render('attendance-sheet', templateData);
+    
   } catch (error) {
     console.error('Error generating attendance sheet:', error);
     res.status(500).json({
@@ -474,7 +402,7 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
   }
 });
 
-// Get registration code sequence (protected)
+// Get registration code sequence
 router.get("/registration-sequence", auth, async (req, res) => {
   try {
     const students = await Student.find()

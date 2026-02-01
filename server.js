@@ -20,9 +20,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Set view engine for EJS
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Make sure this path is correct
+app.set('views', path.join(__dirname, 'views'));
 
-// Static files (if needed)
+// Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
@@ -55,7 +55,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Test EJS rendering
 // Test EJS template
 app.get('/test-attendance-template', async (req, res) => {
   const templateData = {
@@ -81,6 +80,50 @@ app.get('/test-attendance-template', async (req, res) => {
   };
   
   res.render('attendance-sheet', templateData);
+});
+
+// Direct PDF test endpoint
+app.get('/test-pdf/:roomNo', async (req, res) => {
+  try {
+    const templateData = {
+      roomNo: req.params.roomNo,
+      studentPages: [[
+        {
+          name: 'Test Student 1',
+          registrationCode: 'PPM1001',
+          studyingClass: '7',
+          seatNo: '1',
+          fatherName: 'Test Father 1'
+        },
+        {
+          name: 'Test Student 2',
+          registrationCode: 'PPM1002',
+          studyingClass: '8',
+          seatNo: '2',
+          fatherName: 'Test Father 2'
+        }
+      ]],
+      totalStudents: 2,
+      generationDate: new Date().toLocaleDateString('en-GB')
+    };
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Test-Room-${req.params.roomNo}.pdf"`);
+    
+    // Render HTML first
+    const html = await new Promise((resolve, reject) => {
+      res.app.render('attendance-sheet', templateData, (err, html) => {
+        if (err) reject(err);
+        else resolve(html);
+      });
+    });
+    
+    // For testing, just send HTML
+    res.send(html);
+  } catch (error) {
+    console.error('Test PDF error:', error);
+    res.status(500).send('Error generating PDF');
+  }
 });
 
 app.get('/test-hallticket', (req, res) => {
@@ -121,10 +164,11 @@ app.use((req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5010;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📝 API available at http://localhost:${PORT}/api`);
     console.log(`📄 Test attendance sheet: http://localhost:${PORT}/test-attendance-template`);
+    console.log(`📄 Test PDF: http://localhost:${PORT}/test-pdf/1`);
     console.log(`📄 Test hall ticket: http://localhost:${PORT}/test-hallticket`);
 });
