@@ -13,14 +13,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /opt/myapp
-            git pull origin main
-            npm install --production
-            sudo systemctl restart myapp
+      - name: Deploy to EC2
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.EC2_HOST }}
+    username: ${{ secrets.EC2_USER }}
+    key: ${{ secrets.EC2_SSH_KEY }}
+    script: |
+      cd /opt/myapp
+      git pull origin main
+      npm install --production
+      sudo systemctl restart myapp
+
