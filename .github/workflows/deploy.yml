@@ -1,0 +1,39 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            echo "🚀 Starting deployment"
+
+            cd /opt/myapp
+
+            echo "📥 Pulling latest code"
+            git pull origin main
+
+            echo "📦 Installing dependencies"
+            npm install --production
+
+            echo "♻️ Restarting systemd service"
+            sudo systemctl daemon-reload
+            sudo systemctl restart myapp
+
+            echo "✅ Deployment finished successfully"
