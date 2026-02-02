@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Sheet - Room <%= roomNo %></title>
+    <title>Attendance Sheet - Room <%= typeof roomNo !== 'undefined' ? roomNo : 'N/A' %></title>
     <style>
         @page {
             size: A4;
@@ -103,11 +103,16 @@
             padding-left: 1mm !important;
         }
         
+        .father-name-cell {
+            text-align: left !important;
+            padding-left: 1mm !important;
+        }
+        
         /* Adjust column widths */
         .sl-no { width: 4%; }
         .reg-no { width: 12%; }
-        .student-name { width: 40%; }
-        .class { width: 8%; }
+        .student-name { width: 30%; }
+        .father-name { width: 18%; } /* Changed from class to father-name */
         .signature { width: 18%; }
         .attendance { width: 18%; }
         
@@ -116,6 +121,22 @@
             height: 8mm;
             border: 0.5px solid #000;
             margin: 0 auto;
+        }
+        
+        /* Invigilator Signature Section */
+        .invigilator-section {
+            margin-top: 8mm;
+            padding-top: 3mm;
+            border-top: 1px dashed #000;
+            font-size: 9pt;
+        }
+        
+        .invigilator-signature-line {
+            width: 60mm;
+            border-top: 1px solid #000;
+            margin-top: 15mm;
+            text-align: center;
+            padding-top: 1mm;
         }
         
         /* Footer - More compact */
@@ -203,40 +224,71 @@
             page-break-before: always;
         }
         
+        /* Watermark for every page */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 60px; /* Smaller */
-            color: rgba(0, 0, 0, 0.03); /* Lighter */
+            color: rgba(0, 0, 0, 0.05); /* Slightly darker for better visibility */
             font-weight: bold;
             pointer-events: none;
             z-index: -1;
             white-space: nowrap;
+            opacity: 0.7;
         }
         
         /* Ensure 20 rows fit exactly */
         .table-container {
-            height: calc(100% - 50mm); /* Reserve space for header and footer */
+            height: calc(100% - 70mm); /* Adjusted for header, invigilator section, and footer */
             overflow: hidden;
+        }
+        
+        /* Invigilator details container */
+        .invigilator-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5mm;
+        }
+        
+        .invigilator-left, .invigilator-right {
+            width: 45%;
+        }
+        
+        .invigilator-label {
+            font-weight: bold;
+            margin-bottom: 2mm;
         }
     </style>
 </head>
 <body>
-    <!-- Watermark -->
-    <div class="watermark">PPMHSS KOTTUKKARA</div>
-    <% studentPages.forEach((pageStudents, pageIndex) => { %>
+    <% 
+        // Initialize variables with safe defaults
+        const safeRoomNo = typeof roomNo !== 'undefined' ? roomNo : 'N/A';
+        const safeExamDate = typeof examDate !== 'undefined' ? examDate : new Date().toLocaleDateString('en-IN');
+        const safeExamTime = typeof examTime !== 'undefined' ? examTime : '10:00 AM - 11:30 PM';
+        const safeGenerationDate = typeof generationDate !== 'undefined' ? generationDate : new Date().toLocaleDateString('en-IN');
+        const safeTotalStudents = typeof totalStudents !== 'undefined' ? totalStudents : 0;
+        const safeStudentPages = typeof studentPages !== 'undefined' ? studentPages : [];
+        const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
+        const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
+    %>
+    
+    <% safeStudentPages.forEach((pageStudents, pageIndex) => { %>
         <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
+            <!-- Watermark for every page -->
+            <div class="watermark">PPMHSS KOTTUKKARA</div>
+            
             <!-- Header -->
             <div class="header-section">
                 <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
                 <div class="school-name">PPMHSS KOTTUKKARA</div>
                 <div class="sheet-title">ATTENDANCE SHEET</div>
                 <div class="room-info">
-                    Room No: <strong><%= roomNo %></strong> | 
-                    Date: <strong><%= examDate %></strong> | 
-                    Time: <strong><%= examTime %></strong>
+                    Room No: <strong><%= safeRoomNo %></strong> | 
+                    Date: <strong><%= safeExamDate %></strong> | 
+                    Time: <strong><%= safeExamTime %></strong>
                 </div>
             </div>
 
@@ -248,7 +300,7 @@
                             <th class="sl-no">SL No</th>
                             <th class="reg-no">Registration No</th>
                             <th class="student-name">Name of Candidate</th>
-                            <th class="class">Class</th>
+                            <th class="father-name">Father's Name</th> <!-- Changed from Class to Father's Name -->
                             <th class="signature">Candidate's Signature</th>
                             <th class="attendance">Attendance (P/A)</th>
                         </tr>
@@ -263,7 +315,9 @@
                             <td class="student-name student-name-cell">
                                 <%= student.name %>
                             </td>
-                            <td class="class"><%= student.studyingClass %></td>
+                            <td class="father-name father-name-cell">
+                                <%= student.fatherName %> <!-- Changed from studyingClass to fatherName -->
+                            </td>
                             <td class="signature">
                                 <!-- Empty space for signature -->
                             </td>
@@ -280,7 +334,7 @@
                                 <td class="sl-no"><%= pageIndex * 20 + i + 1 %></td>
                                 <td class="reg-no"></td>
                                 <td class="student-name student-name-cell"></td>
-                                <td class="class"></td>
+                                <td class="father-name father-name-cell"></td>
                                 <td class="signature"></td>
                                 <td class="attendance">
                                     <div class="attendance-box"></div>
@@ -290,21 +344,59 @@
                         <% } %>
                     </tbody>
                 </table>
+                
+                <!-- Invigilator Signature Section -->
+                <div class="invigilator-section">
+                    <div class="invigilator-container">
+                        <div class="invigilator-left">
+                            <div class="invigilator-label">Invigilator 1:</div>
+                            <div class="invigilator-signature-line">
+                                Signature
+                            </div>
+                            <div style="margin-top: 2mm; font-size: 8pt;">
+                                Name: ____________________
+                            </div>
+                        </div>
+                        
+                        <div class="invigilator-right">
+                            <div class="invigilator-label">Invigilator 2:</div>
+                            <div class="invigilator-signature-line">
+                                Signature
+                            </div>
+                            <div style="margin-top: 2mm; font-size: 8pt;">
+                                Name: ____________________
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional space for more signatures if needed -->
+                    <div style="margin-top: 10mm; font-size: 8pt; text-align: center;">
+                        <div style="margin-bottom: 3mm;">
+                            <strong>Chief Invigilator/Exam Superintendent:</strong>
+                        </div>
+                        <div class="invigilator-signature-line" style="width: 80mm; margin: 0 auto;">
+                            Signature & Seal
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Footer - Fixed at bottom -->
             <div class="footer-section">
                 <div class="footer-info">
-                    <div>Page: <strong><%= pageIndex + 1 %> of <%= studentPages.length %></strong></div>
-                    <div>Total Students: <strong><%= totalStudents %></strong></div>
-                    <div>Generated: <%= generationDate %></div>
+                    <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
+                    <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
+                    <div>Generated: <%= safeGenerationDate %></div>
+                </div>
+                <div style="margin-top: 1mm; font-style: italic;">
+                    Note: 'P' for Present, 'A' for Absent. Invigilators must sign after verifying attendance.
                 </div>
             </div>
         </div>
     <% }) %>
     
     <!-- Action Buttons (Only for Preview) -->
-    <% if (isPreview) { %>
+    <% if (safeIsPreview) { %>
     <div class="action-buttons no-print">
         <button class="print-button" onclick="window.print()">🖨️ Print Attendance Sheet</button>
         <a href="javascript:history.back()" class="back-button">← Back</a>
@@ -313,7 +405,7 @@
     
     <script>
         // Auto-print if specified
-        <% if (autoPrint) { %>
+        <% if (safeAutoPrint) { %>
         window.addEventListener('load', function() {
             setTimeout(function() {
                 window.print();

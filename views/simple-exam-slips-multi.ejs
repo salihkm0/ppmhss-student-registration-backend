@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4;
-            margin: 0;
+            margin: 5mm;
         }
         
         * {
@@ -24,7 +24,8 @@
             background: #ffffff;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            padding: 3mm;
+            padding: 0;
+            margin: 0;
         }
         
         .room-section {
@@ -35,13 +36,25 @@
             page-break-before: avoid;
         }
         
+        .page-container {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            position: relative;
+            page-break-inside: avoid;
+            padding: 8mm 10mm;
+            position: relative;
+        }
+        
         .room-header {
             text-align: center;
-            margin-bottom: 2mm;
+            margin-bottom: 3mm;
             padding-bottom: 1mm;
             border-bottom: 1px solid #ccc;
             font-size: 10pt;
             font-weight: bold;
+            position: relative;
+            z-index: 1;
         }
         
         .room-title {
@@ -54,16 +67,17 @@
             color: #666;
         }
         
-        /* Same grid as single room */
+        /* Grid for 21 slips (7 rows x 3 columns) */
         .slips-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            gap: 2mm;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            gap: 4mm;
+            height: 100%;
             width: 100%;
-            min-height: 74.25mm;
         }
         
+        /* Individual slip styling - SIMPLE AND CLEAN */
         .slip-container {
             border: 1px solid #000;
             padding: 3mm;
@@ -75,12 +89,31 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            height: 74.25mm;
+            height: 34.25mm;
+            position: relative;
         }
         
+        /* Watermark for every page */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 70px;
+            color: rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: -1;
+            white-space: nowrap;
+            opacity: 0.7;
+        }
+        
+        /* Header - Centered */
         .slip-header {
             text-align: center;
             margin-bottom: 1.5mm;
+            position: relative;
+            z-index: 1;
         }
         
         .exam-name {
@@ -92,22 +125,33 @@
         }
         
         .school-name {
-            font-size: 5pt;
-            font-weight: normal;
-            margin-bottom: 1.5mm;
+            font-size: 8pt;
+            font-weight: bold;
+            margin-bottom: .7mm;
         }
         
+        /* Registration Number - Prominent */
         .reg-number {
             text-align: center;
             font-weight: bold;
-            font-size: 10pt;
-            margin: 1mm 0 2mm 0;
+            font-size: 14pt;
+            margin: 1mm;
             padding: 0.5mm;
             border: 0.5px solid #000;
+            position: relative;
+            z-index: 1;
+            background: white;
         }
         
+        .reg-number span {
+            font-size: 10pt;
+        }
+        
+        /* Student Info - Simple */
         .student-info {
             margin-top: 1mm;
+            position: relative;
+            z-index: 1;
         }
         
         .student-name {
@@ -115,32 +159,122 @@
             margin-bottom: 0.5mm;
         }
         
+        .student-details {
+            font-size: 8pt;
+            color: #333;
+            margin-top: 1mm;
+        }
+        
+        .detail-row {
+            margin-bottom: 0.3mm;
+        }
+        
+        /* Divider line */
         .divider {
-            border-top: 0.5px solid #000;
+            height: 0.5px;
+            background-color: #000;
             margin: 1mm 0;
         }
         
-        .empty-slot {
-            background-color: #f5f5f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-            font-style: italic;
-            font-size: 8pt;
-        }
-        
-        /* Print Styles */
+        /* Print Styles - FIX FOR RIGHT BORDER */
         @media print {
             body {
                 margin: 0;
                 padding: 0;
                 background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .page-container {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                page-break-after: always;
+            }
+            
+            .slips-grid {
+                width: 100%;
+                height: 100%;
+                padding: 8mm 10mm;
+                box-sizing: border-box;
+            }
+            
+            .slip-container {
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                box-shadow: none !important;
             }
             
             .room-header {
                 border-bottom: 1px solid #ccc;
             }
+            
+            /* Ensure right border is visible in print */
+            @page :first {
+                margin: 5mm;
+            }
+            
+            @page {
+                margin: 5mm;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        /* Action Buttons (for preview) */
+        .action-buttons {
+            text-align: center;
+            margin-top: 10mm;
+            padding: 5mm;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        
+        .print-button {
+            background-color: #000;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            margin: 0 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+        
+        .back-button {
+            background-color: #666;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10pt;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        
+        /* Page break */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        /* Force visibility of borders in print */
+        .slip-container {
+            -webkit-box-shadow: inset 0 0 0 1px #000;
+            -moz-box-shadow: inset 0 0 0 1px #000;
+            box-shadow: inset 0 0 0 1px #000;
+        }
+        
+        /* Empty slot styling removed since we don't need it */
+        .empty-slot {
+            display: none;
         }
     </style>
 </head>
@@ -149,8 +283,8 @@
         const roomStudents = studentsByRoom[roomNo];
         if (!roomStudents || roomStudents.length === 0) return;
         
-        // Split into pages of 16
-        const studentsPerPage = 16;
+        // Split into pages of 21 (7x3 grid)
+        const studentsPerPage = 21;
         const studentPages = [];
         for (let i = 0; i < roomStudents.length; i += studentsPerPage) {
             studentPages.push(roomStudents.slice(i, i + studentsPerPage));
@@ -158,63 +292,92 @@
     %>
     
     <% studentPages.forEach((pageStudents, pageIndex) => { %>
-    <div class="room-section">
-        <% if (pageIndex === 0) { %>
-        <div class="room-header">
-            <div class="room-title">Room <%= roomNo %></div>
-            <div class="room-stats">
-                Total Students: <%= roomStudents.length %> | Page <%= pageIndex + 1 %> of <%= studentPages.length %>
-            </div>
-        </div>
-        <% } %>
-        
-        <div class="slips-grid">
-            <% pageStudents.forEach((student) => { %>
-            <div class="slip-container">
-                <div class="slip-header">
-                    <div class="exam-name">NMEA TENDER SCHOLAR 26 </div>
-                    <div class="school-name">PPMHSS KOTTUKKARA</div>
-                </div>
-                
-                <div class="divider"></div>
-                
-                <div class="reg-number">
-                    REG.No.: <%= student.registrationCode %>
-                </div>
-                
-                <div class="student-info">
-                    <div class="student-name">
-                        Student Name : <%= student.name %>
-                    </div>
-                </div>
-            </div>
-            <% }) %>
+        <div class="page-container <%= pageIndex > 0 || roomIndex > 0 ? 'page-break' : '' %>">
+            <!-- Watermark -->
+            <div class="watermark">PPMHSS KOTTUKKARA</div>
             
-            <!-- Fill remaining slots -->
-            <% if (pageStudents.length < 24) { %>
-                <% for (let i = pageStudents.length; i < 24; i++) { %>
-                <div class="slip-container empty-slot">
+            <!-- Room Header -->
+            <div class="room-header">
+                <div class="room-title">Room <%= roomNo %></div>
+                <div class="room-stats">
+                    Total Students: <%= roomStudents.length %> | Page <%= pageIndex + 1 %> of <%= studentPages.length %>
+                </div>
+            </div>
+            
+            <!-- Slips Grid -->
+            <div class="slips-grid">
+                <% pageStudents.forEach((student) => { %>
+                <div class="slip-container">
+                    <!-- Header -->
                     <div class="slip-header">
                         <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
                         <div class="school-name">PPMHSS KOTTUKKARA</div>
                     </div>
-                    <div style="text-align: center; margin-top: 10mm;">
-                        [EMPTY SLOT]
+                    
+                    <!-- Divider -->
+                    <div class="divider"></div>
+                    
+                    <!-- Registration Number -->
+                    <div class="reg-number">
+                       <span>REG.No.:</span> <%= student.registrationCode %>
+                    </div>
+                    
+                    <!-- Room Number -->
+                    <div class="reg-number">
+                       <span>Room.No.:</span> <%= student.roomNo %>
                     </div>
                 </div>
-                <% } %>
-            <% } %>
+                <% }) %>
+            </div>
         </div>
-    </div>
     <% }) %>
     <% }) %>
     
-    <!-- Action Buttons -->
+    <!-- Action Buttons (Only for Preview) -->
     <% if (isPreview) { %>
-    <div class="action-buttons no-print" style="text-align: center; margin-top: 20mm; padding: 10mm; background-color: #f5f5f5;">
+    <div class="action-buttons no-print">
         <button class="print-button" onclick="window.print()">🖨️ Print All Slips</button>
         <a href="javascript:history.back()" class="back-button">← Back</a>
     </div>
     <% } %>
+    
+    <script>
+        // Auto-print if specified
+        <% if (autoPrint) { %>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+        <% } %>
+        
+        // Add print functionality
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+        
+        // Force borders in print
+        document.addEventListener('DOMContentLoaded', function() {
+            const style = document.createElement('style');
+            style.textContent = `
+                @media print {
+                    .slip-container {
+                        -webkit-box-shadow: inset 0 0 0 1px #000 !important;
+                        -moz-box-shadow: inset 0 0 0 1px #000 !important;
+                        box-shadow: inset 0 0 0 1px #000 !important;
+                    }
+                    
+                    body * {
+                        -webkit-print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
 </body>
 </html>
