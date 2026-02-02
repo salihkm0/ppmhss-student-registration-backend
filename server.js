@@ -12,7 +12,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://ppmhss-student-registration.vercel.app'],
+    origin: ['http://localhost:5173', 'https://ppmhss-student-registration.vercel.app',"https://nmea.oxiumev.com", "http://nmea.ppmhsskottukkara.com"],
     credentials: true
 }));
 app.use(express.json());
