@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Student Slips - Room <%= roomNo %></title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.1;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        /* REMOVE body padding and use margin on pages instead */
+        .page-container {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            padding: 5mm; /* This creates the margin */
+            page-break-after: always;
+            page-break-inside: avoid;
+        }
+        
+        /* First page doesn't need top margin when printing */
+        .page-container:first-child {
+            margin-top: 0;
+        }
+        
+        /* For subsequent pages, add top margin */
+        .page-container:not(:first-child) {
+            margin-top: 5mm;
+        }
+        
+        /* Grid for 21 slips (7 rows x 3 columns) */
+        .slips-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            gap: 4mm;
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* Individual slip styling */
+        .slip-container {
+            border: 1px solid #000;
+            padding: 2mm;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 35mm; /* Adjusted for 7 rows */
+            break-inside: avoid;
+            -webkit-region-break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        
+        /* Header - Centered */
+        .slip-header {
+            text-align: center;
+            margin-bottom: 0.5mm;
+            width: 100%;
+        }
+        
+        .exam-name {
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 0.2mm;
+            letter-spacing: 0.1px;
+        }
+        
+        .school-name {
+            font-size: 7pt;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+        }
+        
+        /* Registration Number */
+        .reg-number {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            margin: 0.5mm 0;
+            padding: 0.3mm;
+            width: 100%;
+        }
+        
+        .reg-number span {
+            font-size: 8pt;
+            display: block;
+            margin-bottom: 0.2mm;
+        }
+        
+        .reg-number-value {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        /* For print - ensure proper page breaks */
+        @media print {
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+            
+            .page-container {
+                margin: 0 auto !important;
+                padding: 5mm !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            
+            /* First page in print should have normal padding */
+            .page-container:first-child {
+                margin-top: 0 !important;
+            }
+            
+            /* Subsequent pages should maintain spacing */
+            .page-container:not(:first-child) {
+                padding-top: 5mm !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .slip-container {
+                border: 0.5px solid #000 !important;
+            }
+            
+            /* Force page breaks between containers */
+            .page-break {
+                page-break-before: always;
+            }
+            
+            /* Prevent orphans/widows */
+            .slip-container {
+                -webkit-column-break-inside: avoid;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+        
+        /* Empty slot styling */
+        .empty-slot {
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            font-size: 7pt;
+        }
+        
+        /* Action Buttons (for preview only) */
+        .action-buttons {
+            text-align: center;
+            margin-top: 10mm;
+            padding: 5mm;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        
+        .print-button {
+            background-color: #000;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            margin: 0 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+        
+        .back-button {
+            background-color: #666;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10pt;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <% studentPages.forEach((pageStudents, pageIndex) => { %>
+        <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
+            <div class="slips-grid">
+                <% pageStudents.forEach((student, index) => { %>
+                <div class="slip-container">
+                    <!-- Header -->
+                    <div class="slip-header">
+                        <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
+                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    </div>
+                    
+                    <!-- Registration Number -->
+                    <div class="reg-number">
+                        <span>REG.No.:</span>
+                        <div class="reg-number-value"><%= student.registrationCode %></div>
+                    </div>
+                    
+                    <!-- Room Number -->
+                    <div class="reg-number">
+                        <span>Room.No.:</span>
+                        <div class="reg-number-value"><%= student.roomNo %></div>
+                    </div>
+                </div>
+                <% }) %>
+                
+                <!-- Fill remaining slots if less than 21 -->
+                <% if (pageStudents.length < 21) { %>
+                    <% for (let i = pageStudents.length; i < 21; i++) { %>
+                    <div class="slip-container empty-slot">
+                        <div class="slip-header">
+                            <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
+                            <div class="school-name">PPMHSS KOTTUKKARA</div>
+                        </div>
+                        <div style="text-align: center; margin-top: 5mm;">
+                            [EMPTY SLOT]
+                        </div>
+                    </div>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+    <% }) %>
+    
+    <!-- Action Buttons (Only for Preview) -->
+    <% if (isPreview) { %>
+    <div class="action-buttons no-print">
+        <button class="print-button" onclick="window.print()">🖨️ Print All Slips</button>
+        <button class="print-button" onclick="printCurrentPage()">🖨️ Print Current Page</button>
+        <a href="javascript:history.back()" class="back-button">← Back</a>
+    </div>
+    <% } %>
+    
+    <script>
+        // Auto-print if specified
+        <% if (autoPrint) { %>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        });
+        <% } %>
+        
+        // Add print functionality
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+        
+        // Function to print only current page
+        function printCurrentPage() {
+            const originalBody = document.body.innerHTML;
+            const pageContent = document.querySelector('.page-container').outerHTML;
+            
+            document.body.innerHTML = pageContent;
+            window.print();
+            document.body.innerHTML = originalBody;
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

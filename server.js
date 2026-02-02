@@ -12,7 +12,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://ppmhss-student-registration.vercel.app',"https://nmea.oxiumev.com", "http://nmea.ppmhsskottukkara.com"],
+    origin: ['http://localhost:5173', 'https://ppmhss-student-registration.vercel.app',"https://nmea.oxiumev.com", "http://nmea.ppmhsskottukkara.com","https://nmea.ppmhsskottukkara.com"],
     credentials: true
 }));
 app.use(express.json());
@@ -147,6 +147,67 @@ app.get('/test-hallticket', (req, res) => {
     });
 });
 
+// Test exam slips template
+app.get('/test-exam-slips', async (req, res) => {
+    // Create test data with 16 students
+    const testStudents = [];
+    for (let i = 1; i <= 23; i++) {
+        testStudents.push({
+            name: `Muhammed Salih KM ${i}`,
+            fatherName: `Abdulla Km ${i}`,
+            gender: 'Male',
+            studyingClass: '7',
+            medium: 'English',
+            aadhaarNo: '123456789012',
+            schoolName: 'PPM HSS Kottukkara',
+            registrationCode: `PPM100${i}`,
+            applicationNo: `APP260200${i}`,
+            roomNo: 1,
+            seatNo: i
+        });
+    }
+    
+    const templateData = {
+        roomNo: 1,
+        studentPages: [testStudents],
+        totalStudents: 23,
+        generationDate: new Date().toLocaleDateString('en-IN'),
+        examDate: '01-03-2026',
+        examTime: '10:00 AM - 11:30 PM',
+        examCenter: 'PPM HSS Kottukkara',
+        isPreview: true,
+        autoPrint: false
+    };
+    
+    res.render('exam-slips', templateData);
+});
+
+// Test simple exam slips
+app.get('/test-simple-slips', async (req, res) => {
+    // Create test data
+    const testStudents = [];
+    for (let i = 1; i <= 110; i++) {
+        testStudents.push({
+            name: `Muhammed Salih KM ${i}`,
+            registrationCode: `PPM100${i}`,
+            roomNo: 1,
+            seatNo: i,
+            studyingClass: '7'
+        });
+    }
+    
+    const templateData = {
+        roomNo: 1,
+        studentPages: [testStudents],
+        totalStudents: 110,
+        generationDate: new Date().toLocaleDateString('en-IN'),
+        isPreview: true,
+        autoPrint: false
+    };
+    
+    res.render('simple-exam-slips', templateData);
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
@@ -171,4 +232,5 @@ app.listen(PORT, () => {
     console.log(`📄 Test attendance sheet: http://localhost:${PORT}/test-attendance-template`);
     console.log(`📄 Test PDF: http://localhost:${PORT}/test-pdf/1`);
     console.log(`📄 Test hall ticket: http://localhost:${PORT}/test-hallticket`);
+    console.log(`📄 Test exam slips: http://localhost:${PORT}/test-simple-slips`);
 });

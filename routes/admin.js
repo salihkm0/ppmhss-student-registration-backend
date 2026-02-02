@@ -7,7 +7,6 @@ const bcrypt = require("bcryptjs");
 const puppeteer = require("puppeteer");
 const path = require('path');
 
-// Authentication middleware
 const auth = (req, res, next) => {
   const token = req.header("x-auth-token");
 
@@ -398,6 +397,233 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate attendance sheet: ' + error.message
+    });
+  }
+});
+
+// Generate exam student slips (16 per A4 page)
+router.get("/exam-slips/:roomNo", auth, async (req, res) => {
+  try {
+    const roomNo = parseInt(req.params.roomNo);
+    
+    if (isNaN(roomNo) || roomNo < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid room number'
+      });
+    }
+
+    // Get students in room, sorted by seat number
+    const students = await Student.find({ roomNo })
+      .select('name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address')
+      .sort({ seatNo: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No students found in this room'
+      });
+    }
+
+    // Split students into pages of 16 (for 4x4 grid per A4 page)
+    const studentsPerPage = 16;
+    const studentPages = [];
+    for (let i = 0; i < students.length; i += studentsPerPage) {
+      studentPages.push(students.slice(i, i + studentsPerPage));
+    }
+
+    // Prepare data for EJS template
+    const templateData = {
+      roomNo,
+      studentPages: studentPages,
+      totalStudents: students.length,
+      generationDate: new Date().toLocaleDateString('en-IN'),
+      examDate: '01-03-2026',
+      examTime: '10:00 AM - 11:30 PM',
+      examCenter: 'PPM HSS Kottukkara',
+      isPreview: req.query.preview !== 'false',
+      autoPrint: req.query.print === 'true'
+    };
+
+    // Render HTML template
+    res.render('exam-slips', templateData);
+    
+  } catch (error) {
+    console.error('Error generating exam slips:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate exam slips: ' + error.message
+    });
+  }
+});
+
+// Generate exam slips for multiple/all rooms
+router.get("/exam-slips", auth, async (req, res) => {
+  try {
+    const rooms = req.query.rooms; // Comma-separated room numbers
+    const allRooms = req.query.all === 'true';
+    
+    let roomFilter = {};
+    
+    if (allRooms) {
+      // Get all rooms with students
+      const roomsWithStudents = await Student.distinct('roomNo', { roomNo: { $exists: true, $ne: '' } });
+      roomFilter = { roomNo: { $in: roomsWithStudents } };
+    } else if (rooms) {
+      const roomNumbers = rooms.split(',').map(r => parseInt(r.trim())).filter(r => !isNaN(r));
+      roomFilter = { roomNo: { $in: roomNumbers } };
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Please specify rooms or set all=true'
+      });
+    }
+
+    // Get all students in selected rooms, sorted by room then seat
+    const students = await Student.find(roomFilter)
+      .select('name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address roomNo')
+      .sort({ roomNo: 1, seatNo: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No students found in the specified rooms'
+      });
+    }
+
+    // Group students by room
+    const studentsByRoom = {};
+    students.forEach(student => {
+      if (!studentsByRoom[student.roomNo]) {
+        studentsByRoom[student.roomNo] = [];
+      }
+      studentsByRoom[student.roomNo].push(student);
+    });
+
+    // Prepare template data with room-wise grouping
+    const templateData = {
+      studentsByRoom: studentsByRoom,
+      allRooms: true,
+      roomNumbers: Object.keys(studentsByRoom).sort((a, b) => a - b),
+      totalStudents: students.length,
+      generationDate: new Date().toLocaleDateString('en-IN'),
+      examDate: '01-03-2026',
+      examTime: '10:00 AM - 11:30 PM',
+      examCenter: 'PPM HSS Kottukkara',
+      isPreview: req.query.preview !== 'false',
+      autoPrint: req.query.print === 'true'
+    };
+
+    // Render HTML template (you'll need to create a different template for multiple rooms)
+    res.render('exam-slips-multi', templateData);
+    
+  } catch (error) {
+    console.error('Error generating exam slips for multiple rooms:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate exam slips: ' + error.message
+    });
+  }
+});
+
+// Generate simple exam slips (16 per A4 page) - Minimalist version
+router.get("/simple-exam-slips/:roomNo", auth, async (req, res) => {
+  try {
+    const roomNo = parseInt(req.params.roomNo);
+    
+    if (isNaN(roomNo) || roomNo < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid room number'
+      });
+    }
+
+    // Get students in room, sorted by seat number
+    const students = await Student.find({ roomNo })
+      .select('name registrationCode seatNo studyingClass')
+      .sort({ seatNo: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No students found in this room'
+      });
+    }
+
+    // Split students into pages of 16 (4x4 grid per A4 page)
+     const studentsPerPage = 21; // 7 rows × 3 columns
+    const studentPages = [];
+    for (let i = 0; i < students.length; i += studentsPerPage) {
+      studentPages.push(students.slice(i, i + studentsPerPage));
+    }
+
+
+    // Prepare data for EJS template
+    const templateData = {
+      roomNo,
+      studentPages: studentPages,
+      totalStudents: students.length,
+      generationDate: new Date().toLocaleDateString('en-IN'),
+      isPreview: req.query.preview !== 'false',
+      autoPrint: req.query.print === 'true'
+    };
+
+    // Render HTML template
+    res.render('simple-exam-slips', templateData);
+    
+  } catch (error) {
+    console.error('Error generating exam slips:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate exam slips: ' + error.message
+    });
+  }
+});
+
+// Generate slips for all rooms
+router.get("/simple-exam-slips", auth, async (req, res) => {
+  try {
+    const roomFilter = { roomNo: { $exists: true, $ne: '' } };
+    
+    // Get all students sorted by room then seat
+    const students = await Student.find(roomFilter)
+      .select('name registrationCode seatNo studyingClass roomNo')
+      .sort({ roomNo: 1, seatNo: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No students found'
+      });
+    }
+
+    // Group students by room
+    const studentsByRoom = {};
+    students.forEach(student => {
+      if (!studentsByRoom[student.roomNo]) {
+        studentsByRoom[student.roomNo] = [];
+      }
+      studentsByRoom[student.roomNo].push(student);
+    });
+
+    // Prepare template data
+    const templateData = {
+      studentsByRoom: studentsByRoom,
+      roomNumbers: Object.keys(studentsByRoom).sort((a, b) => a - b),
+      totalStudents: students.length,
+      generationDate: new Date().toLocaleDateString('en-IN'),
+      isPreview: req.query.preview !== 'false',
+      autoPrint: req.query.print === 'true'
+    };
+
+    // Render multi-room template
+    res.render('simple-exam-slips-multi', templateData);
+    
+  } catch (error) {
+    console.error('Error generating exam slips for all rooms:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate exam slips: ' + error.message
     });
   }
 });

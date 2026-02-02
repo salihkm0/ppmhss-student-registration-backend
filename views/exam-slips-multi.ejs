@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Student Slips - All Rooms</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 8pt;
+            line-height: 1.2;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            padding: 5mm;
+        }
+        
+        .room-section {
+            page-break-before: always;
+            margin-bottom: 10mm;
+        }
+        
+        .room-section:first-child {
+            page-break-before: avoid;
+        }
+        
+        .room-header {
+            text-align: center;
+            margin-bottom: 3mm;
+            padding-bottom: 1mm;
+            border-bottom: 1px solid #000;
+        }
+        
+        .room-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+        
+        .room-stats {
+            font-size: 9pt;
+            margin-bottom: 2mm;
+        }
+        
+        /* Same grid styles as single room template */
+        .slips-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2mm;
+            width: 100%;
+            min-height: 74mm;
+        }
+        
+        /* Copy all the slip container styles from exam-slips.ejs */
+        .slip-container {
+            border: 1px solid #000;
+            padding: 3mm;
+            position: relative;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            background: white;
+            overflow: hidden;
+            height: 74mm;
+        }
+        
+        /* ... rest of the slip styles from exam-slips.ejs ... */
+        
+    </style>
+</head>
+<body>
+    <% roomNumbers.forEach(roomNo => { 
+        const roomStudents = studentsByRoom[roomNo];
+        if (!roomStudents || roomStudents.length === 0) return;
+        
+        // Split into pages of 16
+        const studentsPerPage = 16;
+        const studentPages = [];
+        for (let i = 0; i < roomStudents.length; i += studentsPerPage) {
+            studentPages.push(roomStudents.slice(i, i + studentsPerPage));
+        }
+    %>
+    
+    <% studentPages.forEach((pageStudents, pageIndex) => { %>
+    <div class="room-section <%= pageIndex > 0 ? 'new-page' : '' %>">
+        <% if (pageIndex === 0) { %>
+        <div class="room-header">
+            <div class="room-title">Room <%= roomNo %> - Exam Student Slips</div>
+            <div class="room-stats">
+                Total Students: <%= roomStudents.length %> | Page <%= pageIndex + 1 %> of <%= studentPages.length %>
+            </div>
+        </div>
+        <% } %>
+        
+        <div class="slips-grid">
+            <% pageStudents.forEach((student) => { %>
+            <div class="slip-container">
+                <!-- Same slip content as in exam-slips.ejs -->
+                <div class="student-photo">
+                    Photo<br>(2.5cm x 3cm)
+                </div>
+                
+                <div class="slip-header">
+                    <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
+                    <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    <div class="slip-title">EXAM STUDENT SLIP</div>
+                </div>
+                
+                <div class="registration-code">
+                    REG.No.: <%= student.registrationCode %>
+                </div>
+                
+                <div class="student-info">
+                    <div class="info-row">
+                        <div class="info-label">Student Name :</div>
+                        <div class="info-value"><%= student.name %></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Father Name :</div>
+                        <div class="info-value"><%= student.fatherName %></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Gender :</div>
+                        <div class="info-value"><%= student.gender %></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Class :</div>
+                        <div class="info-value"><%= student.studyingClass %> (<%= student.medium %>)</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Aadhaar No :</div>
+                        <div class="info-value"><%= student.aadhaarNo %></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">School :</div>
+                        <div class="info-value"><%= student.schoolName %></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Room No :</div>
+                        <div class="info-value"><strong><%= student.roomNo %> / Seat: <%= student.seatNo %></strong></div>
+                    </div>
+                </div>
+                
+                <div class="exam-details">
+                    <div><strong>Exam Date:</strong> 01-03-2026</div>
+                    <div><strong>Exam Time:</strong> 10:00 AM - 11:30 PM</div>
+                    <div><strong>Exam Center:</strong> PPM HSS Kottukkara</div>
+                </div>
+                
+                <div class="signature-section">
+                    <div style="width: 45%;">
+                        <div>Student Signature:</div>
+                        <div class="signature-box"></div>
+                    </div>
+                    <div style="width: 45%;">
+                        <div>Invigilator Signature:</div>
+                        <div class="signature-box"></div>
+                    </div>
+                </div>
+            </div>
+            <% }) %>
+            
+            <!-- Fill remaining slots -->
+            <% if (pageStudents.length < 16) { %>
+                <% for (let i = pageStudents.length; i < 16; i++) { %>
+                <div class="slip-container" style="background-color: #f9f9f9;">
+                    <div class="slip-header">
+                        <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
+                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                        <div class="slip-title">EXAM STUDENT SLIP</div>
+                    </div>
+                    
+                    <div class="registration-code">
+                        [EMPTY SLOT]
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 15mm; color: #999;">
+                        No Student Assigned
+                    </div>
+                </div>
+                <% } %>
+            <% } %>
+        </div>
+    </div>
+    <% }) %>
+    <% }) %>
+    
+    <!-- Action Buttons -->
+    <% if (isPreview) { %>
+    <div class="action-buttons no-print" style="text-align: center; margin-top: 20mm; padding: 10mm; background-color: #f5f5f5;">
+        <button class="print-button" onclick="window.print()">🖨️ Print All Slips</button>
+        <a href="javascript:history.back()" class="back-button">← Back</a>
+    </div>
+    <% } %>
+</body>
+</html>

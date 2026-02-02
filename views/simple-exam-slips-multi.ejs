@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Student Slips - All Rooms</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.1;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            padding: 3mm;
+        }
+        
+        .room-section {
+            page-break-before: always;
+        }
+        
+        .room-section:first-child {
+            page-break-before: avoid;
+        }
+        
+        .room-header {
+            text-align: center;
+            margin-bottom: 2mm;
+            padding-bottom: 1mm;
+            border-bottom: 1px solid #ccc;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        
+        .room-title {
+            font-size: 11pt;
+            margin-bottom: 0.5mm;
+        }
+        
+        .room-stats {
+            font-size: 8pt;
+            color: #666;
+        }
+        
+        /* Same grid as single room */
+        .slips-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2mm;
+            width: 100%;
+            min-height: 74.25mm;
+        }
+        
+        .slip-container {
+            border: 1px solid #000;
+            padding: 3mm;
+            position: relative;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            background: white;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 74.25mm;
+        }
+        
+        .slip-header {
+            text-align: center;
+            margin-bottom: 1.5mm;
+        }
+        
+        .exam-name {
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 0.5mm;
+            letter-spacing: 0.1px;
+        }
+        
+        .school-name {
+            font-size: 5pt;
+            font-weight: normal;
+            margin-bottom: 1.5mm;
+        }
+        
+        .reg-number {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            margin: 1mm 0 2mm 0;
+            padding: 0.5mm;
+            border: 0.5px solid #000;
+        }
+        
+        .student-info {
+            margin-top: 1mm;
+        }
+        
+        .student-name {
+            font-size: 9pt;
+            margin-bottom: 0.5mm;
+        }
+        
+        .divider {
+            border-top: 0.5px solid #000;
+            margin: 1mm 0;
+        }
+        
+        .empty-slot {
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            font-size: 8pt;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+            }
+            
+            .room-header {
+                border-bottom: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <% roomNumbers.forEach(roomNo => { 
+        const roomStudents = studentsByRoom[roomNo];
+        if (!roomStudents || roomStudents.length === 0) return;
+        
+        // Split into pages of 16
+        const studentsPerPage = 16;
+        const studentPages = [];
+        for (let i = 0; i < roomStudents.length; i += studentsPerPage) {
+            studentPages.push(roomStudents.slice(i, i + studentsPerPage));
+        }
+    %>
+    
+    <% studentPages.forEach((pageStudents, pageIndex) => { %>
+    <div class="room-section">
+        <% if (pageIndex === 0) { %>
+        <div class="room-header">
+            <div class="room-title">Room <%= roomNo %></div>
+            <div class="room-stats">
+                Total Students: <%= roomStudents.length %> | Page <%= pageIndex + 1 %> of <%= studentPages.length %>
+            </div>
+        </div>
+        <% } %>
+        
+        <div class="slips-grid">
+            <% pageStudents.forEach((student) => { %>
+            <div class="slip-container">
+                <div class="slip-header">
+                    <div class="exam-name">NMEA TENDER SCHOLAR 26 </div>
+                    <div class="school-name">PPMHSS KOTTUKKARA</div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="reg-number">
+                    REG.No.: <%= student.registrationCode %>
+                </div>
+                
+                <div class="student-info">
+                    <div class="student-name">
+                        Student Name : <%= student.name %>
+                    </div>
+                </div>
+            </div>
+            <% }) %>
+            
+            <!-- Fill remaining slots -->
+            <% if (pageStudents.length < 24) { %>
+                <% for (let i = pageStudents.length; i < 24; i++) { %>
+                <div class="slip-container empty-slot">
+                    <div class="slip-header">
+                        <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
+                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 10mm;">
+                        [EMPTY SLOT]
+                    </div>
+                </div>
+                <% } %>
+            <% } %>
+        </div>
+    </div>
+    <% }) %>
+    <% }) %>
+    
+    <!-- Action Buttons -->
+    <% if (isPreview) { %>
+    <div class="action-buttons no-print" style="text-align: center; margin-top: 20mm; padding: 10mm; background-color: #f5f5f5;">
+        <button class="print-button" onclick="window.print()">🖨️ Print All Slips</button>
+        <a href="javascript:history.back()" class="back-button">← Back</a>
+    </div>
+    <% } %>
+</body>
+</html>
