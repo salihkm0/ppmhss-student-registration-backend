@@ -53,7 +53,6 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Phone number is required'],
         match: [/^\d{10}$/, 'Please enter a valid 10-digit phone number']
-        // Removed unique: true to allow multiple students with same phone number
     },
     address: {
         houseName: {
@@ -98,7 +97,7 @@ const studentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Registered'],
+        enum: ['Registered', 'Exam Completed', 'Result Published'],
         default: 'Registered'
     },
     roomNo: {
@@ -111,70 +110,94 @@ const studentSchema = new mongoose.Schema({
         required: false,
         default: ''
     },
+    examMarks: {
+        type: Number,
+        default: 0
+    },
+    totalMarks: {
+        type: Number,
+        default: 100
+    },
+    resultStatus: {
+        type: String,
+        enum: ['Pending', 'Passed', 'Failed'],
+        default: 'Pending'
+    },
+    rank: {
+        type: Number,
+        default: 0
+    },
+    scholarship: {
+        type: String,
+        enum: ['', 'Gold', 'Silver', 'Bronze'],
+        default: ''
+    },
+    iasCoaching: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });
 
-// Generate registration code before saving
+// Generate registration code before saving - ONLY FOR NEW DOCUMENTS
 studentSchema.pre('save', async function(next) {
     try {
-        // Generate simple sequential registration code starting from PPM1000
-        if (!this.registrationCode) {
-            const lastStudent = await this.constructor.findOne(
-                {},
-                {},
-                { sort: { 'registrationCode': -1 } }
-            );
-            
-            let nextNumber = 1000; // Start from 1000
-            
-            if (lastStudent && lastStudent.registrationCode) {
-                const lastRegCode = lastStudent.registrationCode;
-                // Extract numeric part from PPM1000 format
-                const match = lastRegCode.match(/PPM(\d+)/);
-                if (match && match[1]) {
-                    const lastNumber = parseInt(match[1]);
-                    if (!isNaN(lastNumber) && lastNumber >= 1000) {
-                        nextNumber = lastNumber + 1;
+        // Only generate codes for new documents
+        if (this.isNew) {
+            // Generate simple sequential registration code starting from PPM1000
+            if (!this.registrationCode) {
+                const lastStudent = await this.constructor.findOne(
+                    {},
+                    {},
+                    { sort: { 'registrationCode': -1 } }
+                );
+                
+                let nextNumber = 1000;
+                
+                if (lastStudent && lastStudent.registrationCode) {
+                    const lastRegCode = lastStudent.registrationCode;
+                    const match = lastRegCode.match(/PPM(\d+)/);
+                    if (match && match[1]) {
+                        const lastNumber = parseInt(match[1]);
+                        if (!isNaN(lastNumber) && lastNumber >= 1000) {
+                            nextNumber = lastNumber + 1;
+                        }
                     }
                 }
+                
+                this.registrationCode = `PPM${nextNumber}`;
             }
             
-            this.registrationCode = `PPM${nextNumber}`;
-        }
-        
-        // Generate application number
-        if (!this.applicationNo) {
-            const year = new Date().getFullYear().toString().slice(-2);
-            const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
-            
-            // Get the last application number
-            const lastStudent = await this.constructor.findOne(
-                {},
-                {},
-                { sort: { 'applicationNo': -1 } }
-            );
-            
-            let nextNumber = 1;
-            if (lastStudent && lastStudent.applicationNo) {
-                const lastAppNo = lastStudent.applicationNo;
-                const lastSequence = parseInt(lastAppNo.slice(-4)) || 0;
-                nextNumber = lastSequence + 1;
+            // Generate application number
+            if (!this.applicationNo) {
+                const year = new Date().getFullYear().toString().slice(-2);
+                const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
+                
+                const lastStudent = await this.constructor.findOne(
+                    {},
+                    {},
+                    { sort: { 'applicationNo': -1 } }
+                );
+                
+                let nextNumber = 1;
+                if (lastStudent && lastStudent.applicationNo) {
+                    const lastAppNo = lastStudent.applicationNo;
+                    const lastSequence = parseInt(lastAppNo.slice(-4)) || 0;
+                    nextNumber = lastSequence + 1;
+                }
+                
+                this.applicationNo = `APP${year}${month}${String(nextNumber).padStart(4, '0')}`;
             }
             
-            this.applicationNo = `APP${year}${month}${String(nextNumber).padStart(4, '0')}`;
-        }
-        
-        // Calculate room number and seat number
-        if (!this.roomNo || !this.seatNo) {
-            const totalStudents = await this.constructor.countDocuments();
-            const studentsPerRoom = 20; // 20 students per room
-            
-            // Room number calculation (1-based)
-            this.roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
-            
-            // Seat number calculation (1-20 per room)
-            this.seatNo = (totalStudents % studentsPerRoom) + 1;
+            // Calculate room number and seat number - ONLY FOR NEW REGISTRATIONS
+            if (!this.roomNo || !this.seatNo) {
+                const totalStudents = await this.constructor.countDocuments();
+                const studentsPerRoom = 20;
+                
+                this.roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
+                this.seatNo = (totalStudents % studentsPerRoom) + 1;
+            }
         }
         
         next();
@@ -184,7 +207,98 @@ studentSchema.pre('save', async function(next) {
     }
 });
 
-// Add indexes for better performance
+// Static method to update ranks and scholarships - FIXED VERSION
+studentSchema.statics.updateRanksAndScholarships = async function() {
+    try {
+        // Get all students sorted by marks descending
+        const students = await this.find({ examMarks: { $gt: 0 } })
+            .sort({ examMarks: -1, createdAt: 1 })
+            .select('_id examMarks rank scholarship iasCoaching resultStatus status roomNo seatNo');
+        
+        let rank = 1;
+        let previousMarks = null;
+        let previousRank = 0;
+        
+        const updatePromises = [];
+        
+        for (let i = 0; i < students.length; i++) {
+            const student = students[i];
+            
+            // Handle same marks getting same rank
+            let currentRank;
+            if (previousMarks === student.examMarks) {
+                currentRank = previousRank;
+            } else {
+                currentRank = rank;
+                previousRank = rank;
+                previousMarks = student.examMarks;
+            }
+            
+            // Assign scholarships for top 3
+            let scholarship = '';
+            if (currentRank === 1) {
+                scholarship = 'Gold';
+            } else if (currentRank === 2) {
+                scholarship = 'Silver';
+            } else if (currentRank === 3) {
+                scholarship = 'Bronze';
+            }
+            
+            // Top 100 get IAS coaching
+            const iasCoaching = currentRank <= 100;
+            
+            // Update result status
+            const resultStatus = student.examMarks >= 40 ? 'Passed' : 'Failed';
+            
+            // Update document WITHOUT triggering pre-save hooks
+            updatePromises.push(
+                this.findByIdAndUpdate(
+                    student._id,
+                    {
+                        $set: {
+                            rank: currentRank,
+                            scholarship: scholarship,
+                            iasCoaching: iasCoaching,
+                            resultStatus: resultStatus,
+                            status: 'Result Published'
+                        }
+                    },
+                    { new: true, runValidators: true }
+                )
+            );
+            
+            rank++;
+        }
+        
+        await Promise.all(updatePromises);
+        
+        return {
+            success: true,
+            message: `Ranks and scholarships updated for ${students.length} students`,
+            updatedCount: students.length
+        };
+    } catch (error) {
+        console.error('Error updating ranks:', error);
+        throw error;
+    }
+};
+
+// Static method to get top performers
+studentSchema.statics.getTopPerformers = async function(limit = 10) {
+    try {
+        const topPerformers = await this.find({ examMarks: { $gt: 0 } })
+            .sort({ rank: 1 })
+            .limit(limit)
+            .select('name registrationCode examMarks totalMarks rank scholarship iasCoaching studyingClass schoolName roomNo seatNo');
+        
+        return topPerformers;
+    } catch (error) {
+        console.error('Error getting top performers:', error);
+        throw error;
+    }
+};
+
+// Add indexes
 studentSchema.index({ phoneNo: 1 });
 studentSchema.index({ aadhaarNo: 1 });
 studentSchema.index({ status: 1 });
@@ -194,132 +308,8 @@ studentSchema.index({ roomNo: 1 });
 studentSchema.index({ seatNo: 1 });
 studentSchema.index({ roomNo: 1, seatNo: 1 });
 studentSchema.index({ phoneNo: 1, createdAt: -1 });
-
-// Static method to get next application number
-studentSchema.statics.getNextApplicationNo = async function() {
-    try {
-        const year = new Date().getFullYear().toString().slice(-2);
-        const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
-        
-        const lastStudent = await this.findOne(
-            {},
-            {},
-            { sort: { 'applicationNo': -1 } }
-        );
-        
-        let nextNumber = 1;
-        if (lastStudent && lastStudent.applicationNo) {
-            const lastAppNo = lastStudent.applicationNo;
-            const lastSequence = parseInt(lastAppNo.slice(-4)) || 0;
-            nextNumber = lastSequence + 1;
-        }
-        
-        return `APP${year}${month}${String(nextNumber).padStart(4, '0')}`;
-    } catch (error) {
-        console.error('Error getting next application number:', error);
-        throw error;
-    }
-};
-
-// Static method to get next registration code
-studentSchema.statics.getNextRegistrationCode = async function() {
-    try {
-        const lastStudent = await this.findOne(
-            {},
-            {},
-            { sort: { 'registrationCode': -1 } }
-        );
-        
-        let nextNumber = 1000; // Start from 1000
-        
-        if (lastStudent && lastStudent.registrationCode) {
-            const lastRegCode = lastStudent.registrationCode;
-            const match = lastRegCode.match(/PPM(\d+)/);
-            if (match && match[1]) {
-                const lastNumber = parseInt(match[1]);
-                if (!isNaN(lastNumber) && lastNumber >= 1000) {
-                    nextNumber = lastNumber + 1;
-                }
-            }
-        }
-        
-        return `PPM${nextNumber}`;
-    } catch (error) {
-        console.error('Error getting next registration code:', error);
-        throw error;
-    }
-};
-
-// Static method to get room and seat allocation
-studentSchema.statics.getNextRoomAllocation = async function() {
-    try {
-        const totalStudents = await this.countDocuments();
-        const studentsPerRoom = 20; // 20 students per room
-        
-        const roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
-        const seatNo = (totalStudents % studentsPerRoom) + 1;
-        
-        return {
-            roomNo,
-            seatNo,
-            totalStudents
-        };
-    } catch (error) {
-        console.error('Error getting room allocation:', error);
-        throw error;
-    }
-};
-
-// Static method to get room distribution
-studentSchema.statics.getRoomDistribution = async function() {
-    try {
-        const distribution = await this.aggregate([
-            {
-                $group: {
-                    _id: "$roomNo",
-                    count: { $sum: 1 },
-                    students: {
-                        $push: {
-                            name: "$name",
-                            registrationCode: "$registrationCode",
-                            applicationNo: "$applicationNo",
-                            seatNo: "$seatNo"
-                        }
-                    }
-                }
-            },
-            { $sort: { _id: 1 } },
-            {
-                $project: {
-                    roomNo: "$_id",
-                    count: 1,
-                    students: {
-                        $sortArray: { input: "$students", sortBy: { seatNo: 1 } }
-                    },
-                    _id: 0
-                }
-            }
-        ]);
-        
-        return distribution;
-    } catch (error) {
-        console.error('Error getting room distribution:', error);
-        throw error;
-    }
-};
-
-// Method to get all students by phone number
-studentSchema.statics.getStudentsByPhone = async function(phoneNo) {
-    try {
-        const students = await this.find({ phoneNo })
-            .sort({ createdAt: -1 })
-            .select('-__v');
-        
-        return students;
-    } catch (error) {
-        console.error('Error getting students by phone:', error);
-        throw error;
-    }
-};
+studentSchema.index({ examMarks: -1 });
+studentSchema.index({ rank: 1 });
+studentSchema.index({ scholarship: 1 });
 
 module.exports = mongoose.model('Student', studentSchema);

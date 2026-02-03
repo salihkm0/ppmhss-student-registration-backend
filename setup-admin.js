@@ -33,13 +33,13 @@ async function setupAdmin() {
         
         // Hash password
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('123456', salt);
+        const hashedPassword = await bcrypt.hash('nmea@ppmhss', salt);
         
         // Create admin
         const admin = new Admin({
-            username: 'admin',
+            username: 'admin@nmea',
             password: hashedPassword,
-            email: 'admin@gmail.com',
+            email: 'admin@ppmhss.com',
             role: 'superadmin'
         });
         

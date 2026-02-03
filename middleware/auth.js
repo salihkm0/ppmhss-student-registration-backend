@@ -1,22 +1,44 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = function(req, res, next) {
-  // Get token from header
-  const token = req.header('x-auth-token');
-  
-  // Check if no token
-  if (!token) {
-    return res.status(401).json({ error: 'No token, authorization denied' });
-  }
-  
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Add admin from payload
-    req.admin = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Token is not valid' });
-  }
+const auth = (roles = []) => {
+    if (typeof roles === 'string') {
+        roles = [roles];
+    }
+
+    return (req, res, next) => {
+        const token = req.header('x-auth-token');
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: 'No token, authorization denied'
+            });
+        }
+
+        try {
+            const decoded = jwt.verify(
+                token,
+                process.env.JWT_SECRET || 'your-secret-key'
+            );
+            
+            req.user = decoded;
+            
+            // Check role authorization
+            if (roles.length > 0 && !roles.includes(decoded.role)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Access denied. Insufficient permissions.'
+                });
+            }
+            
+            next();
+        } catch (error) {
+            res.status(401).json({
+                success: false,
+                error: 'Token is not valid'
+            });
+        }
+    };
 };
+
+module.exports = auth;
