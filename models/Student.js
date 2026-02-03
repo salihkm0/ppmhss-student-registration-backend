@@ -135,9 +135,31 @@ const studentSchema = new mongoose.Schema({
     iasCoaching: {
         type: Boolean,
         default: false
+    },
+    // SOFT DELETE FIELDS - ADDED HERE
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
+});
+
+// Add query middleware to filter out deleted documents by default
+studentSchema.pre(/^find/, function() {
+    if (!this.getOptions().includeDeleted) {
+        this.where({ isDeleted: false });
+    }
+});
+
+studentSchema.pre('countDocuments', function() {
+    if (!this.getOptions().includeDeleted) {
+        this.where({ isDeleted: false });
+    }
 });
 
 // Generate registration code before saving - ONLY FOR NEW DOCUMENTS
@@ -148,7 +170,7 @@ studentSchema.pre('save', async function(next) {
             // Generate simple sequential registration code starting from PPM1000
             if (!this.registrationCode) {
                 const lastStudent = await this.constructor.findOne(
-                    {},
+                    { isDeleted: false },
                     {},
                     { sort: { 'registrationCode': -1 } }
                 );
@@ -175,7 +197,7 @@ studentSchema.pre('save', async function(next) {
                 const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
                 
                 const lastStudent = await this.constructor.findOne(
-                    {},
+                    { isDeleted: false },
                     {},
                     { sort: { 'applicationNo': -1 } }
                 );
@@ -192,7 +214,7 @@ studentSchema.pre('save', async function(next) {
             
             // Calculate room number and seat number - ONLY FOR NEW REGISTRATIONS
             if (!this.roomNo || !this.seatNo) {
-                const totalStudents = await this.constructor.countDocuments();
+                const totalStudents = await this.constructor.countDocuments({ isDeleted: false });
                 const studentsPerRoom = 20;
                 
                 this.roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
@@ -207,11 +229,103 @@ studentSchema.pre('save', async function(next) {
     }
 });
 
+// Static method to soft delete a student - ADDED HERE
+studentSchema.statics.softDelete = async function(studentId) {
+    try {
+        const student = await this.findByIdAndUpdate(
+            studentId,
+            {
+                $set: {
+                    isDeleted: true,
+                    deletedAt: new Date()
+                }
+            },
+            { new: true }
+        );
+        
+        if (!student) {
+            throw new Error('Student not found');
+        }
+        
+        return {
+            success: true,
+            message: 'Student soft deleted successfully',
+            data: student
+        };
+    } catch (error) {
+        console.error('Error soft deleting student:', error);
+        throw error;
+    }
+};
+
+// Static method to restore a soft deleted student - ADDED HERE
+studentSchema.statics.restore = async function(studentId) {
+    try {
+        const student = await this.findByIdAndUpdate(
+            studentId,
+            {
+                $set: {
+                    isDeleted: false,
+                    deletedAt: null
+                }
+            },
+            { new: true }
+        );
+        
+        if (!student) {
+            throw new Error('Student not found');
+        }
+        
+        return {
+            success: true,
+            message: 'Student restored successfully',
+            data: student
+        };
+    } catch (error) {
+        console.error('Error restoring student:', error);
+        throw error;
+    }
+};
+
+// Static method to get deleted students - ADDED HERE
+studentSchema.statics.getDeletedStudents = async function() {
+    try {
+        const deletedStudents = await this.find({ isDeleted: true })
+            .sort({ deletedAt: -1 });
+        
+        return deletedStudents;
+    } catch (error) {
+        console.error('Error getting deleted students:', error);
+        throw error;
+    }
+};
+
+// Static method to permanently delete a student - ADDED HERE
+studentSchema.statics.hardDelete = async function(studentId) {
+    try {
+        const student = await this.findOne({ _id: studentId, isDeleted: true });
+        
+        if (!student) {
+            throw new Error('Deleted student not found');
+        }
+        
+        await this.findByIdAndDelete(studentId);
+        
+        return {
+            success: true,
+            message: 'Student permanently deleted'
+        };
+    } catch (error) {
+        console.error('Error hard deleting student:', error);
+        throw error;
+    }
+};
+
 // Static method to update ranks and scholarships - FIXED VERSION
 studentSchema.statics.updateRanksAndScholarships = async function() {
     try {
-        // Get all students sorted by marks descending
-        const students = await this.find({ examMarks: { $gt: 0 } })
+        // Get all students sorted by marks descending (excluding deleted)
+        const students = await this.find({ examMarks: { $gt: 0 }, isDeleted: false })
             .sort({ examMarks: -1, createdAt: 1 })
             .select('_id examMarks rank scholarship iasCoaching resultStatus status roomNo seatNo');
         
@@ -286,7 +400,7 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
 // Static method to get top performers
 studentSchema.statics.getTopPerformers = async function(limit = 10) {
     try {
-        const topPerformers = await this.find({ examMarks: { $gt: 0 } })
+        const topPerformers = await this.find({ examMarks: { $gt: 0 }, isDeleted: false })
             .sort({ rank: 1 })
             .limit(limit)
             .select('name registrationCode examMarks totalMarks rank scholarship iasCoaching studyingClass schoolName roomNo seatNo');
@@ -311,5 +425,7 @@ studentSchema.index({ phoneNo: 1, createdAt: -1 });
 studentSchema.index({ examMarks: -1 });
 studentSchema.index({ rank: 1 });
 studentSchema.index({ scholarship: 1 });
+studentSchema.index({ isDeleted: 1 }); // ADDED HERE
+studentSchema.index({ deletedAt: -1 }); // ADDED HERE
 
 module.exports = mongoose.model('Student', studentSchema);

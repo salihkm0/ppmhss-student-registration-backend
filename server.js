@@ -172,6 +172,10 @@ app.get('/test-simple-slips', async (req, res) => {
     res.render('simple-exam-slips', templateData);
 });
 
+app.get('/update', (req, res) => {
+    res.send('Welcome to the Student Registration API,added invigilator login feature');
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
