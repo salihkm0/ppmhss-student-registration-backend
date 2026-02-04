@@ -277,7 +277,7 @@ studentSchema.pre('save', async function(next) {
                     nextNumber = lastSequence + 1;
                 }
                 
-                this.applicationNo = `NMEA${year}${month}${String(nextNumber).padStart(4, '0')}`;
+                this.applicationNo = `APP${year}${month}${String(nextNumber).padStart(4, '0')}`;
                 this.originalApplicationNo = this.applicationNo;
             }
             
