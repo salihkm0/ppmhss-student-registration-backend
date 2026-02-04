@@ -38,6 +38,10 @@ const invigilatorSchema = new mongoose.Schema({
         examDate: {
             type: Date,
             default: Date.now
+        },
+        examName: {
+            type: String,
+            default: 'Annual Examination'
         }
     }],
     isActive: {
@@ -70,13 +74,14 @@ invigilatorSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Method to assign room
-invigilatorSchema.methods.assignRoom = function(roomNo) {
+invigilatorSchema.methods.assignRoom = function(roomNo, examName = 'Annual Examination') {
     const existingRoom = this.assignedRooms.find(room => room.roomNo === roomNo);
     
     if (!existingRoom) {
         this.assignedRooms.push({
             roomNo: roomNo,
-            examDate: new Date()
+            examDate: new Date(),
+            examName: examName
         });
     }
     
@@ -88,5 +93,20 @@ invigilatorSchema.methods.removeRoom = function(roomNo) {
     this.assignedRooms = this.assignedRooms.filter(room => room.roomNo !== roomNo);
     return this;
 };
+
+// Method to update room assignments (replace all)
+invigilatorSchema.methods.updateRooms = function(rooms) {
+    this.assignedRooms = rooms.map(roomNo => ({
+        roomNo: roomNo,
+        examDate: new Date(),
+        examName: 'Annual Examination'
+    }));
+    return this;
+};
+
+// Virtual for formatted room list
+invigilatorSchema.virtual('formattedRooms').get(function() {
+    return this.assignedRooms.map(room => `Room ${room.roomNo}`).join(', ');
+});
 
 module.exports = mongoose.model('Invigilator', invigilatorSchema);
