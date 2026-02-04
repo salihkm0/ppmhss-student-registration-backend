@@ -76,7 +76,8 @@
         .attendance-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 3mm 0; /* Reduced */
+            margin-top: 3mm; /* Reduced */
+            margin-bottom: 1mm;
             border: 1px solid #000;
             font-size: 8pt; /* Smaller font */
         }
@@ -114,35 +115,41 @@
         .student-name { width: 30%; }
         .father-name { width: 18%; } /* Changed from class to father-name */
         .signature { width: 18%; }
-        .attendance { width: 18%; }
+        .attendance { width: 12%; }
+        .mark{ width: 18%; }
         
         .attendance-box {
-            width: 10mm;
-            height: 8mm;
+            width: 12mm;
+            height: 7mm;
+            border: 0.5px solid #000;
+            margin: 0 auto;
+        }
+
+        .mark-box {
+            width: 14mm;
+            height: 7mm;
             border: 0.5px solid #000;
             margin: 0 auto;
         }
         
         /* Invigilator Signature Section */
         .invigilator-section {
-            margin-top: 8mm;
-            padding-top: 3mm;
-            border-top: 1px dashed #000;
-            font-size: 9pt;
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
         }
         
         .invigilator-signature-line {
-            width: 60mm;
-            border-top: 1px solid #000;
-            margin-top: 15mm;
+            width: auto;
+            border-bottom: 1px solid #000;
             text-align: center;
-            padding-top: 1mm;
+            margin-top: 8mm;
         }
         
         /* Footer - More compact */
         .footer-section {
             position: absolute;
-            bottom: 5mm;
+            bottom: 3mm;
             left: 8mm;
             right: 8mm;
             font-size: 7pt; /* Smaller */
@@ -241,7 +248,7 @@
         
         /* Ensure 20 rows fit exactly */
         .table-container {
-            height: calc(100% - 70mm); /* Adjusted for header, invigilator section, and footer */
+            height: calc(100% - 85mm); /* Adjusted for header, invigilator section, and footer */
             overflow: hidden;
         }
         
@@ -249,16 +256,16 @@
         .invigilator-container {
             display: flex;
             justify-content: space-between;
-            margin-top: 5mm;
+            margin-right: 1mm;
         }
         
         .invigilator-left, .invigilator-right {
-            width: 45%;
+            width: auto;
         }
         
         .invigilator-label {
             font-weight: bold;
-            margin-bottom: 2mm;
+            width : 100mm;
         }
     </style>
 </head>
@@ -303,6 +310,7 @@
                             <th class="father-name">Father's Name</th> <!-- Changed from Class to Father's Name -->
                             <th class="signature">Candidate's Signature</th>
                             <th class="attendance">Attendance (P/A)</th>
+                            <th class="mark">Student Mark</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -324,6 +332,9 @@
                             <td class="attendance">
                                 <div class="attendance-box"></div>
                             </td>
+                            <td class="mark">
+                                <div class="mark-box"></div>
+                            </td>
                         </tr>
                         <% }) %>
                         
@@ -344,42 +355,19 @@
                         <% } %>
                     </tbody>
                 </table>
-                
-                <!-- Invigilator Signature Section -->
-                <div class="invigilator-section">
-                    <div class="invigilator-container">
-                        <div class="invigilator-left">
-                            <div class="invigilator-label">Invigilator 1:</div>
-                            <div class="invigilator-signature-line">
-                                Signature
-                            </div>
-                            <div style="margin-top: 2mm; font-size: 8pt;">
-                                Name: ____________________
-                            </div>
-                        </div>
-                        
-                        <div class="invigilator-right">
-                            <div class="invigilator-label">Invigilator 2:</div>
-                            <div class="invigilator-signature-line">
-                                Signature
-                            </div>
-                            <div style="margin-top: 2mm; font-size: 8pt;">
-                                Name: ____________________
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Additional space for more signatures if needed -->
-                    <div style="margin-top: 10mm; font-size: 8pt; text-align: center;">
-                        <div style="margin-bottom: 3mm;">
-                            <strong>Chief Invigilator/Exam Superintendent:</strong>
-                        </div>
-                        <div class="invigilator-signature-line" style="width: 80mm; margin: 0 auto;">
-                            Signature & Seal
-                        </div>
+            </div>
+
+            <!-- Invigilator Section -->
+            <div class="invigilator-section">
+                <div class="invigilator-container">
+                    <div class="invigilator-right">
+                        <div class="invigilator-label">Invigilator Name & Signature:</div>
+                        <div class="invigilator-signature-line"></div>
                     </div>
                 </div>
             </div>
+
+
 
             <!-- Footer - Fixed at bottom -->
             <div class="footer-section">
