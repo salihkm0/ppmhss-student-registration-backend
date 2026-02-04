@@ -1,3 +1,4 @@
+const { default: mongoose } = require('mongoose');
 const Student = require('../models/Student');
 const { validationResult } = require('express-validator');
 
@@ -22,7 +23,7 @@ const getNextApplicationNo = async (req, res) => {
         const year = new Date().getFullYear().toString().slice(-2);
         const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
         
-        const lastStudent = await Student.findOne({}, {}, { sort: { 'applicationNo': -1 } });
+        const lastStudent = await Student.findOne({ isDeleted: false }, {}, { sort: { 'applicationNo': -1 } });
         
         let nextNumber = 1;
         if (lastStudent && lastStudent.applicationNo) {
@@ -51,7 +52,7 @@ const getNextApplicationNo = async (req, res) => {
 // Get next registration code
 const getNextRegistrationCode = async (req, res) => {
     try {
-        const lastStudent = await Student.findOne({}, {}, { sort: { 'registrationCode': -1 } });
+        const lastStudent = await Student.findOne({ isDeleted: false }, {}, { sort: { 'registrationCode': -1 } });
         
         let nextNumber = 1000;
         
@@ -86,7 +87,7 @@ const getNextRegistrationCode = async (req, res) => {
 // Get next room allocation
 const getNextRoomAllocation = async (req, res) => {
     try {
-        const totalStudents = await Student.countDocuments();
+        const totalStudents = await Student.countDocuments({ isDeleted: false });
         const studentsPerRoom = 20;
         
         const roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
@@ -119,8 +120,14 @@ const getAllStudents = async (req, res) => {
         const search = req.query.search || '';
         const classFilter = req.query.class || '';
         const roomFilter = req.query.room || '';
+        const showDeleted = req.query.showDeleted === 'true';
 
         let query = {};
+
+        // Only filter by isDeleted if not showing deleted
+        if (!showDeleted) {
+            query.isDeleted = false;
+        }
 
         if (search) {
             query.$or = [
@@ -171,7 +178,14 @@ const getAllStudents = async (req, res) => {
 // Get student by ID
 const getStudentById = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.id).select('-__v');
+        const includeDeleted = req.query.includeDeleted === 'true';
+        
+        let query = { _id: req.params.id };
+        if (!includeDeleted) {
+            query.isDeleted = false;
+        }
+        
+        const student = await Student.findOne(query).select('-__v');
         
         if (!student) {
             return res.status(404).json({
@@ -200,7 +214,8 @@ const getStudentByCode = async (req, res) => {
             $or: [
                 { registrationCode: req.params.code },
                 { applicationNo: req.params.code }
-            ]
+            ],
+            isDeleted: false
         }).select('-__v');
         
         if (!student) {
@@ -235,7 +250,10 @@ const getStudentsByPhone = async (req, res) => {
             });
         }
         
-        const students = await Student.find({ phoneNo })
+        const students = await Student.find({ 
+            phoneNo,
+            isDeleted: false
+        })
             .select('-__v')
             .sort({ createdAt: -1 });
         
@@ -260,12 +278,12 @@ const getStudentsByPhone = async (req, res) => {
     }
 };
 
-// Soft delete a student
+// Soft delete a student - UPDATED
 const softDeleteStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
         const { reason } = req.body;
-        const adminId = req.admin._id;
+        const adminId = req.admin ? req.admin._id : null;
 
         const result = await Student.softDelete(studentId, adminId, reason);
 
@@ -283,10 +301,18 @@ const softDeleteStudent = async (req, res) => {
     }
 };
 
-// Restore a soft deleted student
+// Restore a soft deleted student - FIXED
 const restoreStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
+
+        // Check if studentId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(studentId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid student ID format'
+            });
+        }
 
         const result = await Student.restore(studentId);
 
@@ -304,7 +330,8 @@ const restoreStudent = async (req, res) => {
     }
 };
 
-// Get deleted students
+
+// Get deleted students - FIXED
 const getDeletedStudents = async (req, res) => {
     try {
         const deletedStudents = await Student.getDeletedStudents();
@@ -322,10 +349,18 @@ const getDeletedStudents = async (req, res) => {
     }
 };
 
-// Permanently delete a student
+// Permanently delete a student - FIXED
 const hardDeleteStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
+
+        // Check if studentId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(studentId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid student ID format'
+            });
+        }
 
         const result = await Student.hardDelete(studentId);
 
@@ -342,10 +377,13 @@ const hardDeleteStudent = async (req, res) => {
     }
 };
 
-// Get room distribution
+// Get room distribution - UPDATED
 const getRoomDistribution = async (req, res) => {
     try {
         const distribution = await Student.aggregate([
+            {
+                $match: { isDeleted: false }
+            },
             {
                 $group: {
                     _id: "$roomNo",
@@ -373,7 +411,7 @@ const getRoomDistribution = async (req, res) => {
             }
         ]);
         
-        const totalStudents = await Student.countDocuments();
+        const totalStudents = await Student.countDocuments({ isDeleted: false });
         
         res.json({
             success: true,
@@ -393,46 +431,60 @@ const getRoomDistribution = async (req, res) => {
     }
 };
 
-// Get students by room number
+// Get students by room (excluding deleted)
 const getStudentsByRoom = async (req, res) => {
-    try {
-        const roomNo = parseInt(req.params.roomNo);
-        
-        if (isNaN(roomNo) || roomNo < 1) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid room number'
-            });
-        }
-        
-        const students = await Student.find({ roomNo })
-            .select('name registrationCode applicationNo seatNo studyingClass phoneNo examMarks resultStatus rank')
-            .sort({ seatNo: 1 });
-        
-        if (!students || students.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'No students found in this room'
-            });
-        }
-        
-        res.json({
-            success: true,
-            data: {
-                roomNo,
-                studentCount: students.length,
-                capacity: 20,
-                availableSeats: 20 - students.length,
-                students
-            }
-        });
-    } catch (error) {
-        console.error('Get students by room error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Server error'
-        });
+  try {
+    const { roomNo } = req.params;
+    
+    if (!roomNo || isNaN(roomNo)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid room number is required'
+      });
     }
+
+    const students = await Student.find({ 
+      roomNo: parseInt(roomNo),
+      isDeleted: false 
+    })
+    .select('name registrationCode seatNo gender studyingClass fatherName')
+    .sort({ seatNo: 1 });
+
+    if (!students.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No active students found in this room'
+      });
+    }
+
+    // Calculate gender distribution
+    const genderCounts = {};
+    students.forEach(student => {
+      genderCounts[student.gender] = (genderCounts[student.gender] || 0) + 1;
+    });
+
+    const genderStats = Object.entries(genderCounts).map(([gender, count]) => ({
+      _id: gender,
+      count: count
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        roomNo: parseInt(roomNo),
+        studentCount: students.length,
+        availableSeats: 20 - students.length,
+        genderCounts: genderStats,
+        students: students
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching room students:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
 };
 
 // Register new student
@@ -446,8 +498,11 @@ const registerStudent = async (req, res) => {
             });
         }
 
-        // Check if Aadhaar already exists
-        const existingAadhaar = await Student.findOne({ aadhaarNo: req.body.aadhaarNo });
+        // Check if Aadhaar already exists (including deleted)
+        const existingAadhaar = await Student.findOne({ 
+            aadhaarNo: req.body.aadhaarNo,
+            isDeleted: false
+        });
         if (existingAadhaar) {
             return res.status(400).json({
                 success: false,
@@ -460,7 +515,8 @@ const registerStudent = async (req, res) => {
 
         // Count registrations from this phone number
         const registrationsFromPhone = await Student.countDocuments({
-            phoneNo: student.phoneNo
+            phoneNo: student.phoneNo,
+            isDeleted: false
         });
 
         // Log registration notification
@@ -500,14 +556,15 @@ const registerStudent = async (req, res) => {
     }
 };
 
-// Hall ticket preview
+// Hall ticket preview - UPDATED
 const hallTicketPreview = async (req, res) => {
     try {
         const student = await Student.findOne({
             $or: [
                 { registrationCode: req.params.code },
                 { applicationNo: req.params.code }
-            ]
+            ],
+            isDeleted: false
         }).select('-__v').lean();
         
         if (!student) {
@@ -549,17 +606,27 @@ const hallTicketPreview = async (req, res) => {
     }
 };
 
-// Export students data
+// Export students data - UPDATED
 const exportStudents = async (req, res) => {
     try {
-        const students = await Student.find()
+        const showDeleted = req.query.showDeleted === 'true';
+        
+        let query = {};
+        if (!showDeleted) {
+            query.isDeleted = false;
+        }
+        
+        const students = await Student.find(query)
             .select('-__v')
             .sort({ roomNo: 1, seatNo: 1 });
 
         res.setHeader('Content-Type', 'text/csv');
+        const filename = showDeleted 
+            ? `students_with_deleted_${Date.now()}.csv`
+            : `students_${Date.now()}.csv`;
         res.setHeader(
             'Content-Disposition',
-            `attachment; filename=students_${Date.now()}.csv`
+            `attachment; filename=${filename}`
         );
 
         const headers = [
@@ -589,6 +656,9 @@ const exportStudents = async (req, res) => {
             'Local Body Name',
             'Village',
             'Registration Date',
+            'Is Deleted',
+            'Deleted Date',
+            'Delete Reason'
         ].join(',');
 
         const rows = students
@@ -620,6 +690,9 @@ const exportStudents = async (req, res) => {
                     student.address.localBodyName,
                     student.address.village,
                     new Date(student.createdAt).toLocaleDateString('en-IN'),
+                    student.isDeleted ? 'Yes' : 'No',
+                    student.deletedAt ? new Date(student.deletedAt).toLocaleDateString('en-IN') : '',
+                    student.deleteReason || ''
                 ]
                     .map((field) => {
                         const fieldStr = String(field || '').replace(/"/g, '""');
