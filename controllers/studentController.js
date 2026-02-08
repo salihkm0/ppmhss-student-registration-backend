@@ -590,6 +590,11 @@ const hallTicketPreview = async (req, res) => {
         student.roomNo = student.roomNo || 'To be assigned';
         student.seatNo = student.seatNo || 'To be assigned';
         
+        // Format Aadhaar number for display (XXXX XXXX XXXX)
+        student.formattedAadhaar = student.aadhaarNo ? 
+            student.aadhaarNo.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : 
+            'Not provided';
+        
         res.render('hallticket', {
             student: student,
             issueDate: issueDate,

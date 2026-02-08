@@ -85,6 +85,13 @@
             letter-spacing: 0.5px;
         }
         
+        .organization-subtitle {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: #333;
+        }
+        
         .school-name {
             font-size: 12pt;
             font-weight: bold;
@@ -438,6 +445,12 @@
             padding-top: 1mm;
             margin-top: 1mm;
         }
+        
+        .four-column-table th, 
+        .four-column-table td {
+            width: 25%;
+            vertical-align: top;
+        }
     </style>
 </head>
 <body>
@@ -458,7 +471,8 @@
                     
                     <div class="organization-info">
                         <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
-                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                        <div class="organization-subtitle">Organized by Nediyirupp Muslim Education Association (NMEA)</div>
+                        <!-- <div class="school-name">PPMHSS KOTTUKKARA</div> -->
                         <div class="school-address">Kondotty, Malappuram - 673638</div>
                         <div class="ticket-title">HALL TICKET</div>
                     </div>
@@ -527,10 +541,10 @@
                     <td><%= student.gender || '' %></td>
                 </tr>
                 <tr>
-                    <th>school</th>
+                    <th>School</th>
                     <td><%= student.schoolName || '' %></td>
-                    <th>Medium of Exam</th>
-                    <td><%= student.medium || '' %></td>
+                    <th>Aadhaar No</th>
+                    <td><%= student.formattedAadhaar || student.aadhaarNo || 'Not provided' %></td>
                 </tr>
             </table>
             
