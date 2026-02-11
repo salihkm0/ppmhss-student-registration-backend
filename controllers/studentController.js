@@ -17,13 +17,21 @@ const logRegistrationNotification = async (student) => {
     console.log('='.repeat(60));
 };
 
-// Get next application number
+// Get next application number - FIXED
 const getNextApplicationNo = async (req, res) => {
     try {
         const year = new Date().getFullYear().toString().slice(-2);
         const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
         
-        const lastStudent = await Student.findOne({ isDeleted: false }, {}, { sort: { 'applicationNo': -1 } });
+        // Find the last student with an application number (including deleted ones to avoid conflicts after restore)
+        const lastStudent = await Student.findOne(
+            { 
+                applicationNo: { $regex: `^APP${year}${month}` },
+                isDeleted: false 
+            }, 
+            {}, 
+            { sort: { 'applicationNo': -1 } }
+        );
         
         let nextNumber = 1;
         if (lastStudent && lastStudent.applicationNo) {
