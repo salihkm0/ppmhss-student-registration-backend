@@ -39,6 +39,12 @@ const studentSchema = new mongoose.Schema({
         required: [true, 'School name is required'],
         trim: true
     },
+    subDistrict: {
+        type: String,
+        required: [true, 'Sub-district is required'],
+        trim: true,
+        enum: ['kondotty', 'manjeri', 'kizhisseri', 'vengara' ,'areekode','',' ']
+    },
     studyingClass: {
         type: String,
         required: [true, 'Class is required'],
