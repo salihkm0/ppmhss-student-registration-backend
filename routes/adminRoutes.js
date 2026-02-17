@@ -4,6 +4,7 @@ const adminController = require("../controllers/adminController");
 const studentController = require("../controllers/studentController");
 const auth = require("../middleware/auth");
 const Student = require("../models/Student");
+const { body } = require('express-validator');
 
 // Public routes
 router.post("/login", adminController.login);
@@ -33,7 +34,7 @@ router.get(
   studentController.exportStudents,
 );
 
-// Soft delete routes - also put before parameterized routes
+// Soft delete routes
 router.delete(
   "/students/soft-delete/:studentId",
   auth(["admin", "superadmin"]),
@@ -62,7 +63,32 @@ router.get(
   studentController.getStudentById,
 );
 
-// Invigilator management routes (admin only)
+// UPDATE STUDENT ROUTE - With validation for editable fields only
+router.put(
+  '/students/:id', 
+  auth(["admin", "superadmin"]),
+  [
+    body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
+    body('fatherName').optional().trim().notEmpty().withMessage('Father name cannot be empty'),
+    body('aadhaarNo').optional().matches(/^\d{12}$/).withMessage('Aadhaar number must be 12 digits'),
+    body('phoneNo').optional().matches(/^\d{10}$/).withMessage('Phone number must be 10 digits'),
+    body('gender').optional().isIn(['Male', 'Female', 'Other']).withMessage('Invalid gender'),
+    body('schoolName').optional().isString(),
+    body('studyingClass').optional().isIn(['7', '8', '9', '10', '11', '12']).withMessage('Invalid class'),
+    body('medium').optional().isIn(['Malayalam', 'English', 'Hindi', 'Tamil', 'Kannada', 'Other']),
+    body('subDistrict').optional().isString(),
+    body('address.houseName').optional().isString(),
+    body('address.place').optional().isString(),
+    body('address.postOffice').optional().isString(),
+    body('address.pinCode').optional().matches(/^\d{6}$/).withMessage('PIN code must be 6 digits'),
+    body('address.village').optional().isString(),
+    body('address.localBodyType').optional().isIn(['Panchayath', 'Municipality', 'Corporation', '']),
+    body('address.localBodyName').optional().isString()
+  ],
+  studentController.updateStudent
+);
+
+// Invigilator management routes
 router.post(
   "/invigilators",
   auth(["admin", "superadmin"]),
@@ -104,7 +130,7 @@ router.get(
   adminController.getAvailableRooms,
 );
 
-// Results management routes (admin only)
+// Results management routes
 router.post(
   "/results/update-ranks",
   auth(["admin", "superadmin"]),
@@ -119,7 +145,6 @@ router.get(
 
 router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
   try {
-    // Get all rooms that have active students (excluding deleted)
     const studentRooms = await Student.aggregate([
       { $match: { isDeleted: false } },
       {
@@ -134,9 +159,7 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    // Format the response
     const formattedRooms = studentRooms.map((room) => {
-      // Count gender distribution
       const genderStats = {};
       room.genderCounts.forEach((gender) => {
         genderStats[gender] = (genderStats[gender] || 0) + 1;
@@ -152,7 +175,7 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
       return {
         roomNo: room._id,
         studentCount: room.studentCount,
-        capacity: 20, // Default capacity
+        capacity: 20,
         availableSeats: 20 - room.studentCount,
         genderCounts: genderCountsArray,
       };
@@ -172,7 +195,7 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
   }
 });
 
-// Generate attendance sheet (HTML for browser printing)
+// Generate attendance sheet
 router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
   try {
     const roomNo = parseInt(req.params.roomNo);
