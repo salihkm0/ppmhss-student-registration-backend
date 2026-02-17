@@ -17,13 +17,12 @@ const logRegistrationNotification = async (student) => {
     console.log('='.repeat(60));
 };
 
-// Get next application number - FIXED
+// Get next application number
 const getNextApplicationNo = async (req, res) => {
     try {
         const year = new Date().getFullYear().toString().slice(-2);
         const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
         
-        // Find the last student with an application number (including deleted ones to avoid conflicts after restore)
         const lastStudent = await Student.findOne(
             { 
                 applicationNo: { $regex: `^APP${year}${month}` },
@@ -132,7 +131,6 @@ const getAllStudents = async (req, res) => {
 
         let query = {};
 
-        // Only filter by isDeleted if not showing deleted
         if (!showDeleted) {
             query.isDeleted = false;
         }
@@ -286,7 +284,7 @@ const getStudentsByPhone = async (req, res) => {
     }
 };
 
-// Soft delete a student - UPDATED
+// Soft delete a student
 const softDeleteStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
@@ -309,12 +307,11 @@ const softDeleteStudent = async (req, res) => {
     }
 };
 
-// Restore a soft deleted student - FIXED
+// Restore a soft deleted student
 const restoreStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
 
-        // Check if studentId is a valid ObjectId
         if (!mongoose.Types.ObjectId.isValid(studentId)) {
             return res.status(400).json({
                 success: false,
@@ -338,8 +335,7 @@ const restoreStudent = async (req, res) => {
     }
 };
 
-
-// Get deleted students - FIXED
+// Get deleted students
 const getDeletedStudents = async (req, res) => {
     try {
         const deletedStudents = await Student.getDeletedStudents();
@@ -357,12 +353,11 @@ const getDeletedStudents = async (req, res) => {
     }
 };
 
-// Permanently delete a student - FIXED
+// Permanently delete a student
 const hardDeleteStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
 
-        // Check if studentId is a valid ObjectId
         if (!mongoose.Types.ObjectId.isValid(studentId)) {
             return res.status(400).json({
                 success: false,
@@ -385,7 +380,7 @@ const hardDeleteStudent = async (req, res) => {
     }
 };
 
-// Get room distribution - UPDATED
+// Get room distribution
 const getRoomDistribution = async (req, res) => {
     try {
         const distribution = await Student.aggregate([
@@ -439,7 +434,7 @@ const getRoomDistribution = async (req, res) => {
     }
 };
 
-// Get students by room (excluding deleted)
+// Get students by room
 const getStudentsByRoom = async (req, res) => {
   try {
     const { roomNo } = req.params;
@@ -465,7 +460,6 @@ const getStudentsByRoom = async (req, res) => {
       });
     }
 
-    // Calculate gender distribution
     const genderCounts = {};
     students.forEach(student => {
       genderCounts[student.gender] = (genderCounts[student.gender] || 0) + 1;
@@ -506,7 +500,6 @@ const registerStudent = async (req, res) => {
             });
         }
 
-        // Check if Aadhaar already exists (including deleted)
         const existingAadhaar = await Student.findOne({ 
             aadhaarNo: req.body.aadhaarNo,
             isDeleted: false
@@ -521,13 +514,11 @@ const registerStudent = async (req, res) => {
         const student = new Student(req.body);
         await student.save();
 
-        // Count registrations from this phone number
         const registrationsFromPhone = await Student.countDocuments({
             phoneNo: student.phoneNo,
             isDeleted: false
         });
 
-        // Log registration notification
         logRegistrationNotification(student).catch(err => {
             console.log('Background logging error:', err.message);
         });
@@ -564,7 +555,172 @@ const registerStudent = async (req, res) => {
     }
 };
 
-// Hall ticket preview - UPDATED
+// UPDATE STUDENT - Only basic details and address
+const updateStudent = async (req, res) => {
+    try {
+        // Check for validation errors
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const { id } = req.params;
+
+        // Validate studentId format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid student ID format'
+            });
+        }
+
+        // Find the student (only non-deleted students can be edited)
+        const existingStudent = await Student.findOne({
+            _id: id,
+            isDeleted: false
+        });
+        
+        if (!existingStudent) {
+            return res.status(404).json({
+                success: false,
+                error: 'Student not found or has been deleted'
+            });
+        }
+
+        // Check for duplicate Aadhaar number if it's being updated
+        if (req.body.aadhaarNo && req.body.aadhaarNo !== existingStudent.aadhaarNo) {
+            const duplicateAadhaar = await Student.findOne({
+                aadhaarNo: req.body.aadhaarNo,
+                isDeleted: false,
+                _id: { $ne: id }
+            });
+            
+            if (duplicateAadhaar) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Aadhaar number already registered with another student'
+                });
+            }
+        }
+
+        // Define ALLOWED editable fields (only basic details and address)
+        const allowedEditableFields = [
+            'name',
+            'fatherName',
+            'motherName',
+            'aadhaarNo',
+            'phoneNo',
+            'gender',
+            'dateOfBirth',
+            'schoolName',
+            'studyingClass',
+            'medium',
+            'address',
+            'subDistrict'  // Added subDistrict
+        ];
+
+        // Extract only allowed fields from request body
+        const updateData = {};
+        
+        // Handle simple fields
+        allowedEditableFields.forEach(field => {
+            if (field !== 'address' && req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        });
+
+        // Handle address fields separately (allow partial updates)
+        if (req.body.address) {
+            updateData.address = {};
+            const addressFields = [
+                'houseName', 'place', 'postOffice', 'village', 
+                'pinCode', 'localBodyName', 'localBodyType'
+            ];
+            
+            addressFields.forEach(field => {
+                if (req.body.address[field] !== undefined) {
+                    updateData.address[field] = req.body.address[field];
+                }
+            });
+        }
+
+        // Check if there's anything to update
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No valid fields to update'
+            });
+        }
+
+        // Add update metadata
+        updateData.updatedAt = new Date();
+        if (req.admin) {
+            updateData.updatedBy = req.admin._id;
+        }
+
+        // Perform the update
+        const updatedStudent = await Student.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { 
+                new: true,
+                runValidators: true,
+                context: 'query'
+            }
+        ).select('-__v');
+
+        // Log the update
+        console.log('='.repeat(60));
+        console.log('📝 STUDENT BASIC DETAILS UPDATE');
+        console.log('='.repeat(60));
+        console.log(`Student: ${updatedStudent.name}`);
+        console.log(`Registration Code: ${updatedStudent.registrationCode}`);
+        console.log(`Updated Fields: ${Object.keys(updateData).filter(k => k !== 'address').join(', ')}`);
+        if (updateData.address) {
+            console.log(`Address Fields: ${Object.keys(updateData.address).join(', ')}`);
+        }
+        console.log(`Updated By: ${req.admin ? req.admin.email : 'System'}`);
+        console.log('='.repeat(60));
+
+        res.json({
+            success: true,
+            message: 'Student basic details updated successfully',
+            data: {
+                ...updatedStudent.toObject(),
+                _note: 'Only basic details and address can be edited. System-generated fields like registration code, room no, seat no are locked.'
+            }
+        });
+
+    } catch (error) {
+        console.error('Update student error:', error);
+        
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                error: 'Aadhaar number must be unique. This Aadhaar is already registered.'
+            });
+        }
+
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                error: 'Validation failed',
+                details: errors
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            error: 'Server error while updating student'
+        });
+    }
+};
+
+// Hall ticket preview
 const hallTicketPreview = async (req, res) => {
     try {
         const student = await Student.findOne({
@@ -598,7 +754,6 @@ const hallTicketPreview = async (req, res) => {
         student.roomNo = student.roomNo || 'To be assigned';
         student.seatNo = student.seatNo || 'To be assigned';
         
-        // Format Aadhaar number for display (XXXX XXXX XXXX)
         student.formattedAadhaar = student.aadhaarNo ? 
             student.aadhaarNo.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : 
             'Not provided';
@@ -619,7 +774,7 @@ const hallTicketPreview = async (req, res) => {
     }
 };
 
-// Export students data - UPDATED
+// Export students data
 const exportStudents = async (req, res) => {
     try {
         const showDeleted = req.query.showDeleted === 'true';
@@ -653,14 +808,9 @@ const exportStudents = async (req, res) => {
             'School',
             'Class',
             'Medium',
+            'Sub District',
             'Room No',
             'Seat No',
-            'Exam Marks',
-            'Total Marks',
-            'Rank',
-            'Scholarship',
-            'IAS Coaching',
-            'Result Status',
             'House Name',
             'Place',
             'Post Office',
@@ -669,9 +819,7 @@ const exportStudents = async (req, res) => {
             'Local Body Name',
             'Village',
             'Registration Date',
-            'Is Deleted',
-            'Deleted Date',
-            'Delete Reason'
+            'Is Deleted'
         ].join(',');
 
         const rows = students
@@ -687,14 +835,9 @@ const exportStudents = async (req, res) => {
                     student.schoolName,
                     student.studyingClass,
                     student.medium,
+                    student.subDistrict || '',
                     student.roomNo,
                     student.seatNo,
-                    student.examMarks || 0,
-                    student.totalMarks || 100,
-                    student.rank || 'N/A',
-                    student.scholarship || 'N/A',
-                    student.iasCoaching ? 'Yes' : 'No',
-                    student.resultStatus,
                     student.address.houseName,
                     student.address.place,
                     student.address.postOffice,
@@ -703,9 +846,7 @@ const exportStudents = async (req, res) => {
                     student.address.localBodyName,
                     student.address.village,
                     new Date(student.createdAt).toLocaleDateString('en-IN'),
-                    student.isDeleted ? 'Yes' : 'No',
-                    student.deletedAt ? new Date(student.deletedAt).toLocaleDateString('en-IN') : '',
-                    student.deleteReason || ''
+                    student.isDeleted ? 'Yes' : 'No'
                 ]
                     .map((field) => {
                         const fieldStr = String(field || '').replace(/"/g, '""');
@@ -751,5 +892,6 @@ module.exports = {
     registerStudent,
     hallTicketPreview,
     exportStudents,
-    healthCheck
+    healthCheck,
+    updateStudent
 };

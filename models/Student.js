@@ -43,7 +43,7 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Sub-district is required'],
         trim: true,
-        enum: ['kondotty', 'manjeri', 'kizhisseri', 'vengara' ,'areekode','',' ']
+        enum: ['kondotty', 'manjeri', 'kizhisseri', 'vengara' ,'areekode','',' ','malappuram']
     },
     studyingClass: {
         type: String,
