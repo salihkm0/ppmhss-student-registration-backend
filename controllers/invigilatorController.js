@@ -239,7 +239,7 @@ exports.enterMarks = async (req, res) => {
         });
 
         // Check if invigilator is assigned to student's room
-        const isAssigned = invigilator.assignedRooms.some(room => room.roomNo === student.roomNo);
+        const isAssigned = invigilator.assignedRooms.some(room => room.roomNo.toString() === student.roomNo.toString());
         
         if (!isAssigned) {
             return res.status(403).json({
