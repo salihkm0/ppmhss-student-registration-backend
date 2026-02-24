@@ -25,41 +25,27 @@ const allowedOrigins = [
     'https://nmea.ppmhsskottukkara.com'
 ];
 
-// Enhanced CORS configuration
-const corsOptions = {
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl, etc)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Blocked origin:', origin);
-            callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
-        }
-    },
-    credentials: true, // Allow cookies to be sent with requests
-    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-HTTP-Method-Override'],
-    preflightContinue: false
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Handle preflight requests for all routes
-app.options('*', cors(corsOptions));
-
-// Additional CORS headers middleware (as a backup)
+// MANUAL CORS MIDDLEWARE - Place this BEFORE any other middleware
 app.use((req, res, next) => {
     const origin = req.headers.origin;
+    
+    // Check if origin is allowed
     if (allowedOrigins.includes(origin) || !origin) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
     }
+    
+    // Set other CORS headers
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Handle preflight requests immediately
+    if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS preflight request for:', req.url);
+        return res.status(200).end();
+    }
+    
     next();
 });
 
@@ -78,7 +64,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const connectDB = require('./config/database');
 connectDB();
 
-// Request logging middleware (optional, for debugging)
+// Request logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'No Origin'}`);
     next();
@@ -242,7 +228,6 @@ app.get('/test-room-attendance/:roomNo', async (req, res) => {
     try {
         const roomNo = parseInt(req.params.roomNo);
         
-        // You can replace this with actual database query
         const Student = require('./models/Student');
         const students = await Student.find({
             roomNo,
@@ -278,7 +263,6 @@ app.get('/test-room-slips/:roomNo', async (req, res) => {
     try {
         const roomNo = parseInt(req.params.roomNo);
         
-        // You can replace this with actual database query
         const Student = require('./models/Student');
         const students = await Student.find({
             roomNo,
@@ -327,7 +311,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ 
         success: false,
         error: 'Something went wrong!',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        message: err.message
     });
 });
 
