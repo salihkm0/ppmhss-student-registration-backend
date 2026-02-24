@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invigilator Attendance Sheet</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 8mm 5mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.2;
+            color: #000;
+            background: #fff;
+            padding: 0;
+        }
+        
+        .page-container {
+            width: 100%;
+            max-width: 277mm;
+            margin: 0 auto;
+            padding: 2mm;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3mm;
+            border-bottom: 1px solid #000;
+            padding-bottom: 1.5mm;
+        }
+        
+        .main-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sub-title {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        .date-row {
+            font-size: 10pt;
+            font-weight: bold;
+            text-align: left;
+            margin-top: 2mm;
+            display: flex;
+            align-items: center;
+        }
+        
+        .date-label {
+            margin-right: 3mm;
+        }
+        
+        .date-value {
+            border-bottom: 1px solid #000;
+            min-width: 50mm;
+            padding: 0 2mm;
+        }
+        
+        /* Table */
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000;
+            font-size: 8pt;
+            table-layout: fixed;
+        }
+        
+        .attendance-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            padding: 1.5mm 0.5mm;
+            border: 1px solid #000;
+            font-size: 8pt;
+            vertical-align: middle;
+        }
+        
+        .attendance-table td {
+            padding: 1mm 0.5mm;
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            height: 8mm;
+            font-size: 8pt;
+        }
+        
+        /* Column widths - adjusted for proper structure */
+        .sl-no { width: 4%; }
+        .short-name { width: 10%; }
+        .teacher-name { width: 20%; }
+        .mobile-no { width: 10%; }
+        .duty-time { width: 14%; } /* Main column for duty time */
+        .duty-from { width: 7%; }   /* Sub column */
+        .duty-to { width: 7%; }     /* Sub column */
+        .room-no { width: 7%; }
+        .signature { width: 18%; }
+        .remarks { width: 7%; }
+        
+        /* Text alignment */
+        .text-left {
+            text-align: left !important;
+            padding-left: 1.5mm !important;
+        }
+        
+        /* Signature box */
+        .signature-box {
+            width: 90%;
+            height: 5mm;
+            border: 0.5px solid #999;
+            margin: 0 auto;
+            background-color: #fff;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 3mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 9pt;
+            border-top: 0.5px dashed #000;
+            padding-top: 2mm;
+        }
+        
+        .signature-line {
+            width: 50mm;
+            border-bottom: 1px solid #000;
+            margin-top: 1mm;
+        }
+        
+        .chief-invigilator {
+            text-align: right;
+            min-width: 70mm;
+        }
+        
+        .chief-label {
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+        
+        .total-count {
+            font-weight: bold;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .attendance-table th {
+                background-color: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .signature-box {
+                border: 0.5px solid #000;
+            }
+        }
+        
+        /* Action buttons */
+        .action-buttons {
+            text-align: center;
+            margin: 5mm 0;
+            padding: 3mm;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .print-btn {
+            background: #000;
+            color: white;
+            border: none;
+            padding: 8px 25px;
+            margin: 0 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+        
+        .print-btn:hover {
+            background: #333;
+        }
+        
+        .back-btn {
+            background: #666;
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            font-size: 11pt;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: #555;
+        }
+        
+        .footer-info {
+            display: flex;
+            gap: 10mm;
+        }
+    </style>
+</head>
+<body>
+    <%
+        const safeExamDate = typeof examDate !== 'undefined' ? examDate : '______';
+        const safeDuties = typeof duties !== 'undefined' ? duties : [];
+        const safeTotalInvigilators = typeof totalInvigilators !== 'undefined' ? totalInvigilators : 0;
+        const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
+        const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
+        const safeExamTime = typeof examTime !== 'undefined' ? examTime : '______';
+        const safeExamCenter = typeof examCenter !== 'undefined' ? examCenter : 'PPMHSS KOTTUKKARA';
+    %>
+    
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="main-title">NMEA TENDER SCHOLAR 26</div>
+            <div class="sub-title"><%= safeExamCenter %></div>
+            <div class="sub-title">INVIGILATOR ATTENDANCE SHEET</div>
+            
+            <div class="date-row">
+                <span class="date-label">DATE:</span>
+                <span class="date-value"><%= safeExamDate %></span>
+                <span style="margin-left: 10mm;">TIME:</span>
+                <span class="date-value"><%= safeExamTime %></span>
+            </div>
+        </div>
+
+        <!-- Attendance Table with proper column structure -->
+        <table class="attendance-table">
+            <thead>
+                <tr>
+                    <th class="sl-no" rowspan="2">S/N</th>
+                    <th class="short-name" rowspan="2">SHORT NAME</th>
+                    <th class="teacher-name" rowspan="2">NAME OF TEACHER</th>
+                    <th class="mobile-no" rowspan="2">MOBILE NO</th>
+                    <th class="duty-time" colspan="2">DUTY TIME</th>
+                    <th class="room-no" rowspan="2">ROOM NO</th>
+                    <th class="signature" rowspan="2">SIGNATURE</th>
+                    <th class="remarks" rowspan="2">REMARKS</th>
+                </tr>
+                <tr>
+                    <th class="duty-from">FROM</th>
+                    <th class="duty-to">TO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (safeDuties && safeDuties.length > 0) { %>
+                    <% safeDuties.forEach((duty, index) => { %>
+                        <tr>
+                            <td class="sl-no"><%= index + 1 %></td>
+                            <td class="short-name"><%= duty.shortName || '' %></td>
+                            <td class="teacher-name text-left"><%= duty.name || '' %></td>
+                            <td class="mobile-no"><%= duty.mobileNo || '' %></td>
+                            <td class="duty-from"><%= duty.dutyFrom || '' %></td>
+                            <td class="duty-to"><%= duty.dutyTo || '' %></td>
+                            <td class="room-no"><%= duty.roomNo || '' %></td>
+                            <td class="signature">
+                                <div class="signature-box"></div>
+                            </td>
+                            <td class="remarks"><%= duty.remarks || '' %></td>
+                        </tr>
+                    <% }) %>
+                    
+                    <!-- Add empty rows to fill table (15 rows for better space utilization) -->
+                    <% if (safeDuties.length < 15) { %>
+                        <% for (let i = safeDuties.length; i < 15; i++) { %>
+                        <tr>
+                            <td class="sl-no"><%= i + 1 %></td>
+                            <td class="short-name"></td>
+                            <td class="teacher-name"></td>
+                            <td class="mobile-no"></td>
+                            <td class="duty-from"></td>
+                            <td class="duty-to"></td>
+                            <td class="room-no"></td>
+                            <td class="signature">
+                                <div class="signature-box"></div>
+                            </td>
+                            <td class="remarks"></td>
+                        </tr>
+                        <% } %>
+                    <% } %>
+                <% } else { %>
+                    <!-- Show 15 empty rows when no data -->
+                    <% for (let i = 1; i <= 15; i++) { %>
+                    <tr>
+                        <td class="sl-no"><%= i %></td>
+                        <td class="short-name"></td>
+                        <td class="teacher-name"></td>
+                        <td class="mobile-no"></td>
+                        <td class="duty-from"></td>
+                        <td class="duty-to"></td>
+                        <td class="room-no"></td>
+                        <td class="signature">
+                            <div class="signature-box"></div>
+                        </td>
+                        <td class="remarks"></td>
+                    </tr>
+                    <% } %>
+                <% } %>
+            </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-info">
+                <div>
+                    <span class="total-count">Total Invigilators: <%= safeTotalInvigilators %></span>
+                </div>
+                <div>
+                    <span>Present: ______ | Absent: ______</span>
+                </div>
+            </div>
+            <div class="chief-invigilator">
+                <div class="chief-label">Chief Invigilator Signature:</div>
+                <div class="signature-line"></div>
+                <div style="font-size: 7pt; margin-top: 1mm;">(Name & Date)</div>
+            </div>
+        </div>
+        
+        <!-- Footer note -->
+        <div style="font-size: 7pt; text-align: center; margin-top: 1mm; color: #555;">
+            Note: Invigilators must sign after completing duty. Remarks column for any special notes.
+        </div>
+    </div>
+
+    <!-- Action Buttons (only for preview) -->
+    <% if (safeIsPreview) { %>
+    <div class="action-buttons no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print Attendance Sheet</button>
+        <a href="javascript:history.back()" class="back-btn">← Back</a>
+    </div>
+    <% } %>
+
+    <script>
+        <% if (safeAutoPrint) { %>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+        <% } %>
+        
+        // Ctrl+P for print
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

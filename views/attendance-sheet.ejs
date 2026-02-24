@@ -1,3 +1,4 @@
+<!-- Save this as views/attendance-sheet.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,8 +8,8 @@
     <style>
         @page {
             size: A4;
-            margin: 10mm; /* Reduced margin */
-            border: 1px solid #000; /* Added border to page */
+            margin: 10mm;
+            border: 1px solid #000;
         }
         
         * {
@@ -20,7 +21,7 @@
         body {
             font-family: 'Arial', sans-serif;
             font-size: 10pt;
-            line-height: 1.4; /* Reduced line height */
+            line-height: 1.4;
             color: #000000;
             background: #ffffff;
             -webkit-print-color-adjust: exact;
@@ -30,73 +31,73 @@
         
         .page-container {
             width: 210mm;
-            height: 287mm; /* Fixed height to fit A4 */
-            margin: 5mm auto; /* Reduced margin */
+            height: 287mm;
+            margin: 5mm auto;
             position: relative;
             page-break-inside: avoid;
             border: 1px solid #000;
-            padding: 8mm; /* Reduced padding */
-            overflow: hidden; /* Prevent overflow */
+            padding: 8mm;
+            overflow: hidden;
         }
         
-        /* Header Section - More compact */
+        /* Header Section */
         .header-section {
             text-align: center;
-            margin-bottom: 4mm; /* Reduced */
-            padding-bottom: 2mm; /* Reduced */
-            border-bottom: 1px solid #000; /* Thinner border */
+            margin-bottom: 4mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #000;
         }
         
         .organization-name {
-            font-size: 14pt; /* Smaller */
+            font-size: 14pt;
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 0.5mm; /* Reduced */
+            margin-bottom: 0.5mm;
             letter-spacing: 0.3px;
         }
         
         .school-name {
-            font-size: 12pt; /* Smaller */
+            font-size: 12pt;
             font-weight: bold;
-            margin-bottom: 0.5mm; /* Reduced */
+            margin-bottom: 0.5mm;
         }
         
         .sheet-title {
-            font-size: 14pt; /* Smaller */
+            font-size: 14pt;
             font-weight: bold;
-            margin: 2mm 0; /* Reduced */
+            margin: 2mm 0;
         }
         
         .room-info {
-            font-size: 10pt; /* Smaller */
-            margin: 1mm 0; /* Reduced */
+            font-size: 10pt;
+            margin: 1mm 0;
         }
         
-        /* Table Styles - More compact */
+        /* Table Styles */
         .attendance-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 3mm; /* Reduced */
+            margin-top: 3mm;
             margin-bottom: 1mm;
             border: 1px solid #000;
-            font-size: 8pt; /* Smaller font */
+            font-size: 8pt;
         }
         
         .attendance-table th {
             background-color: #f0f0f0;
             font-weight: bold;
             text-align: center;
-            padding: 0.5mm 1mm; /* Reduced padding */
-            border: 0.5px solid #000; /* Thinner borders */
+            padding: 0.5mm 1mm;
+            border: 0.5px solid #000;
             font-size: 8pt;
         }
         
         .attendance-table td {
-            padding: 0.5mm 1mm; /* Reduced padding */
-            border: 0.5px solid #000; /* Thinner borders */
+            padding: 0.5mm 1mm;
+            border: 0.5px solid #000;
             text-align: center;
             font-size: 8pt;
-            height: 5mm; /* Fixed row height */
+            height: 5mm;
         }
         
         .student-name-cell {
@@ -104,55 +105,78 @@
             padding-left: 1mm !important;
         }
         
-        .father-name-cell {
-            text-align: left !important;
-            padding-left: 1mm !important;
+        .aadhaar-cell {
+            text-align: center !important;
+            font-family: monospace;
+            font-size: 8pt;
         }
         
-        /* Adjust column widths */
-        .sl-no { width: 4%; }
-        .reg-no { width: 12%; }
-        .student-name { width: 30%; }
-        .father-name { width: 18%; } /* Changed from class to father-name */
-        .signature { width: 18%; }
-        .attendance { width: 12%; }
-        .mark{ width: 18%; }
+        .medium-cell {
+            text-align: center !important;
+        }
+        
+        .qp-type-cell {
+            text-align: center !important;
+            font-weight: bold;
+        }
+        
+        .qp-A {
+            background-color: #e6f3ff;
+            color: #0066cc;
+        }
+        
+        .qp-B {
+            background-color: #fff0e6;
+            color: #cc6600;
+        }
+        
+        /* Column widths */
+        .sl-no { width: 3%; }
+        .reg-no { width: 8%; }
+        .student-name { width: 20%; }
+        .aadhaar-no { width: 12%; }
+        .medium { width: 8%; }
+        .qp-type { width: 5%; }
+        .signature { width: 16%; }
+        .attendance { width: 8%; }
+        .mark { width: 8%; }
         
         .attendance-box {
-            width: 12mm;
-            height: 7mm;
+            width: 8mm;
+            height: 5mm;
             border: 0.5px solid #000;
             margin: 0 auto;
         }
 
         .mark-box {
-            width: 14mm;
-            height: 7mm;
+            width: 10mm;
+            height: 5mm;
             border: 0.5px solid #000;
             margin: 0 auto;
         }
         
-        /* Invigilator Signature Section */
+        /* Invigilator Section */
         .invigilator-section {
             display: flex;
             justify-content: flex-end;
             width: 100%;
+            margin-top: 2mm;
         }
         
         .invigilator-signature-line {
-            width: auto;
+            width: 80mm;
             border-bottom: 1px solid #000;
             text-align: center;
-            margin-top: 8mm;
+            margin-top: 2mm;
         }
         
-        /* Footer - More compact */
+        /* Footer */
         .footer-section {
             position: absolute;
             bottom: 3mm;
             left: 8mm;
             right: 8mm;
-            font-size: 7pt; /* Smaller */
+            font-size: 7pt;
             text-align: center;
             color: #555;
             padding-top: 2mm;
@@ -190,13 +214,21 @@
             .attendance-table th {
                 background-color: #f0f0f0 !important;
             }
+            
+            .qp-A {
+                background-color: #e6f3ff !important;
+            }
+            
+            .qp-B {
+                background-color: #fff0e6 !important;
+            }
         }
         
-        /* Action Buttons (for preview) */
+        /* Action Buttons */
         .action-buttons {
             text-align: center;
-            margin-top: 10mm;
-            padding: 5mm;
+            margin: 20px;
+            padding: 20px;
             background-color: #f5f5f5;
             border-radius: 4px;
         }
@@ -205,11 +237,11 @@
             background-color: #000;
             color: white;
             border: none;
-            padding: 8px 20px;
-            margin: 0 4px;
+            padding: 10px 30px;
+            margin: 0 10px;
             border-radius: 3px;
             cursor: pointer;
-            font-size: 11pt;
+            font-size: 14px;
             font-weight: bold;
         }
         
@@ -217,28 +249,26 @@
             background-color: #666;
             color: white;
             border: none;
-            padding: 6px 15px;
+            padding: 10px 20px;
             border-radius: 3px;
             cursor: pointer;
-            font-size: 10pt;
+            font-size: 14px;
             text-decoration: none;
             display: inline-block;
-            margin-left: 8px;
         }
         
-        /* Page break for multiple pages */
         .page-break {
             page-break-before: always;
         }
         
-        /* Watermark for every page */
+        /* Watermark */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60px; /* Smaller */
-            color: rgba(0, 0, 0, 0.05); /* Slightly darker for better visibility */
+            font-size: 60px;
+            color: rgba(0, 0, 0, 0.05);
             font-weight: bold;
             pointer-events: none;
             z-index: -1;
@@ -246,31 +276,67 @@
             opacity: 0.7;
         }
         
-        /* Ensure 20 rows fit exactly */
         .table-container {
-            height: calc(100% - 85mm); /* Adjusted for header, invigilator section, and footer */
+            height: calc(100% - 90mm);
             overflow: hidden;
         }
         
-        /* Invigilator details container */
         .invigilator-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             margin-right: 1mm;
         }
         
-        .invigilator-left, .invigilator-right {
+        .invigilator-right {
             width: auto;
         }
         
         .invigilator-label {
             font-weight: bold;
-            width : 100mm;
+            width: 100mm;
+        }
+        
+        .no-data {
+            text-align: center;
+            margin-top: 50mm;
+        }
+        
+        .no-data h2 {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .qp-legend {
+            display: flex;
+            justify-content: flex-start;
+            gap: 20px;
+            margin-top: 2mm;
+            font-size: 8pt;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #000;
+        }
+        
+        .legend-box.A {
+            background-color: #e6f3ff;
+        }
+        
+        .legend-box.B {
+            background-color: #fff0e6;
         }
     </style>
 </head>
 <body>
-    <% 
+    <%
         // Initialize variables with safe defaults
         const safeRoomNo = typeof roomNo !== 'undefined' ? roomNo : 'N/A';
         const safeExamDate = typeof examDate !== 'undefined' ? examDate : new Date().toLocaleDateString('en-IN');
@@ -280,108 +346,166 @@
         const safeStudentPages = typeof studentPages !== 'undefined' ? studentPages : [];
         const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
         const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
+        
+        // Function to determine question paper type (alternating A/B based on index)
+        function getQuestionPaperType(index) {
+            return (index % 2 === 0) ? 'A' : 'B';
+        }
+        
+        // Calculate total students across all pages for consistent alternation
+        let globalIndex = 0;
     %>
     
-    <% safeStudentPages.forEach((pageStudents, pageIndex) => { %>
-        <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
-            <!-- Watermark for every page -->
-            <div class="watermark">PPMHSS KOTTUKKARA</div>
-            
-            <!-- Header -->
-            <div class="header-section">
-                <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
-                <div class="school-name">PPMHSS KOTTUKKARA</div>
-                <div class="sheet-title">ATTENDANCE SHEET</div>
-                <div class="room-info">
-                    Room No: <strong><%= safeRoomNo %></strong> | 
-                    Date: <strong><%= safeExamDate %></strong> | 
-                    Time: <strong><%= safeExamTime %></strong>
+    <% if (safeStudentPages && safeStudentPages.length > 0) { %>
+        <% safeStudentPages.forEach((pageStudents, pageIndex) => { %>
+            <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
+                <!-- Watermark for every page -->
+                <div class="watermark">PPMHSS KOTTUKKARA</div>
+                
+                <!-- Header -->
+                <div class="header-section">
+                    <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
+                    <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    <div class="sheet-title">ATTENDANCE SHEET</div>
+                    <div class="room-info">
+                        Room No: <strong><%= safeRoomNo %></strong> | 
+                        Date: <strong><%= safeExamDate %></strong> | 
+                        Time: <strong><%= safeExamTime %></strong>
+                    </div>
+                    
+                    <!-- Question Paper Type Legend -->
+                    <div class="qp-legend">
+                        <div class="legend-item">
+                            <div class="legend-box A"></div>
+                            <span>Question Paper Type A</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box B"></div>
+                            <span>Question Paper Type B</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Attendance Table -->
-            <div class="table-container">
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th class="sl-no">SL No</th>
-                            <th class="reg-no">Registration No</th>
-                            <th class="student-name">Name of Candidate</th>
-                            <th class="father-name">Father's Name</th> <!-- Changed from Class to Father's Name -->
-                            <th class="signature">Candidate's Signature</th>
-                            <th class="attendance">Attendance (P/A)</th>
-                            <th class="mark">Student Mark</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% pageStudents.forEach((student, index) => { 
-                            const slNo = pageIndex * 20 + index + 1;
-                        %>
-                        <tr>
-                            <td class="sl-no"><%= slNo %></td>
-                            <td class="reg-no"><%= student.registrationCode %></td>
-                            <td class="student-name student-name-cell">
-                                <%= student.name %>
-                            </td>
-                            <td class="father-name father-name-cell">
-                                <%= student.fatherName %> <!-- Changed from studyingClass to fatherName -->
-                            </td>
-                            <td class="signature">
-                                <!-- Empty space for signature -->
-                            </td>
-                            <td class="attendance">
-                                <div class="attendance-box"></div>
-                            </td>
-                            <td class="mark">
-                                <div class="mark-box"></div>
-                            </td>
-                        </tr>
-                        <% }) %>
-                        
-                        <!-- Fill remaining rows if less than 20 -->
-                        <% if (pageStudents.length < 20) { %>
-                            <% for (let i = pageStudents.length; i < 20; i++) { %>
+                <!-- Attendance Table -->
+                <div class="table-container">
+                    <table class="attendance-table">
+                        <thead>
                             <tr>
-                                <td class="sl-no"><%= pageIndex * 20 + i + 1 %></td>
-                                <td class="reg-no"></td>
-                                <td class="student-name student-name-cell"></td>
-                                <td class="father-name father-name-cell"></td>
-                                <td class="signature"></td>
+                                <th class="sl-no">SL No</th>
+                                <th class="reg-no">Reg No</th>
+                                <th class="student-name">Candidate Name</th>
+                                <th class="aadhaar-no">Aadhaar No</th>
+                                <th class="medium">Medium</th>
+                                <th class="qp-type">QP Type</th>
+                                <th class="signature">Signature</th>
+                                <th class="attendance">P/A</th>
+                                <th class="mark">Mark</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% pageStudents.forEach((student, index) => { 
+                                const slNo = pageIndex * 20 + index + 1;
+                                const qpType = getQuestionPaperType(globalIndex);
+                                const qpClass = qpType === 'A' ? 'qp-A' : 'qp-B';
+                                globalIndex++; // Increment global index for next student
+                                
+                                // Format Aadhaar number to show last 6 digits only
+                                let displayAadhaar = '';
+                                if (student.aadhaarNo) {
+                                    const aadhaar = student.aadhaarNo.toString();
+                                    displayAadhaar = aadhaar.slice(-6);
+                                }
+                            %>
+                            <tr>
+                                <td class="sl-no"><%= slNo %></td>
+                                <td class="reg-no"><%= student.registrationCode || '' %></td>
+                                <td class="student-name student-name-cell">
+                                    <%= student.name || '' %>
+                                </td>
+                                <td class="aadhaar-no aadhaar-cell">
+                                    <%= displayAadhaar %>
+                                </td>
+                                <td class="medium medium-cell">
+                                    <%= student.medium ? student.medium : '-' %>
+                                </td>
+                                <td class="qp-type qp-type-cell <%= qpClass %>">
+                                    <strong><%= qpType %></strong>
+                                </td>
+                                <td class="signature">
+                                    <!-- Empty space for signature -->
+                                </td>
                                 <td class="attendance">
                                     <div class="attendance-box"></div>
                                 </td>
+                                <td class="mark">
+                                    <div class="mark-box"></div>
+                                </td>
                             </tr>
+                            <% }) %>
+                            
+                            <!-- Fill remaining rows if less than 20 -->
+                            <% if (pageStudents.length < 20) { %>
+                                <% for (let i = pageStudents.length; i < 20; i++) { 
+                                    const qpType = getQuestionPaperType(globalIndex);
+                                    const qpClass = qpType === 'A' ? 'qp-A' : 'qp-B';
+                                    globalIndex++;
+                                %>
+                                <tr>
+                                    <td class="sl-no"><%= pageIndex * 20 + i + 1 %></td>
+                                    <td class="reg-no"></td>
+                                    <td class="student-name student-name-cell"></td>
+                                    <td class="aadhaar-no aadhaar-cell"></td>
+                                    <td class="medium medium-cell"></td>
+                                    <td class="qp-type qp-type-cell <%= qpClass %>">
+                                        <strong><%= qpType %></strong>
+                                    </td>
+                                    <td class="signature"></td>
+                                    <td class="attendance">
+                                        <div class="attendance-box"></div>
+                                    </td>
+                                    <td class="mark">
+                                        <div class="mark-box"></div>
+                                    </td>
+                                </tr>
+                                <% } %>
                             <% } %>
-                        <% } %>
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Invigilator Section -->
-            <div class="invigilator-section">
-                <div class="invigilator-container">
-                    <div class="invigilator-right">
-                        <div class="invigilator-label">Invigilator Name & Signature:</div>
-                        <div class="invigilator-signature-line"></div>
+                <!-- Invigilator Section -->
+                <div class="invigilator-section">
+                    <div class="invigilator-container">
+                        <div class="invigilator-right">
+                            <div class="invigilator-label">Invigilator Name & Signature:</div>
+                            <div class="invigilator-signature-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer-section">
+                    <div class="footer-info">
+                        <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
+                        <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
+                        <div>Generated: <%= safeGenerationDate %></div>
+                    </div>
+                    <div style="margin-top: 1mm; font-style: italic;">
+                        Note: 'P' for Present, 'A' for Absent. QP Type A/B alternates by seat number.
+                        Invigilators must sign after verifying attendance.
                     </div>
                 </div>
             </div>
-
-
-
-            <!-- Footer - Fixed at bottom -->
-            <div class="footer-section">
-                <div class="footer-info">
-                    <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
-                    <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
-                    <div>Generated: <%= safeGenerationDate %></div>
-                </div>
-                <div style="margin-top: 1mm; font-style: italic;">
-                    Note: 'P' for Present, 'A' for Absent. Invigilators must sign after verifying attendance.
-                </div>
+        <% }) %>
+    <% } else { %>
+        <div class="page-container">
+            <div class="no-data">
+                <h2>No students found in this room</h2>
+                <p>Room No: <strong><%= safeRoomNo %></strong></p>
+                <a href="javascript:history.back()" class="back-button">← Back</a>
             </div>
         </div>
-    <% }) %>
+    <% } %>
     
     <!-- Action Buttons (Only for Preview) -->
     <% if (safeIsPreview) { %>
