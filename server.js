@@ -8,8 +8,8 @@ const path = require('path');
 const studentRoutes = require('./routes/studentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const invigilatorRoutes = require('./routes/invigilatorRoutes');
-const examInvigilatorRoutes = require('./routes/examInvigilator');
-// const roomRoutes = require('./routes/roomRoutes');
+// const examInvigilatorRoutes = require('./routes/examInvigilator');
+const roomRoutes = require('./routes/roomRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 
 dotenv.config();
@@ -63,8 +63,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/invigilator', invigilatorRoutes);
-app.use('/api/exam-invigilator', examInvigilatorRoutes);
-// app.use('/api/rooms', roomRoutes);
+// app.use('/api/exam-invigilator', examInvigilatorRoutes);
+app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 
 // Test EJS templates
