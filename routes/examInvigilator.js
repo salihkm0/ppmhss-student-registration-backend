@@ -1,22 +1,39 @@
-// routes/invigilatorRoutes.js
+// routes/examInvigilator.js
 const express = require('express');
 const router = express.Router();
 const invigilatorController = require('../controllers/examInvigilator');
 const invigilatorDutyController = require('../controllers/invigilatorDutyController');
 const auth = require('../middleware/auth');
 
-// IMPORTANT: Place specific routes BEFORE dynamic :id routes
+// ============ CORS PREFLIGHT HANDLER ============
+router.options('*', (req, res) => {
+    console.log('Exam Invigilator Routes - Handling OPTIONS preflight request');
+    const origin = req.headers.origin;
+    
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    res.status(200).end();
+});
 
-// Dashboard/Stats routes (specific)
+// ============ DASHBOARD/STATS ROUTES ============
 router.get('/stats/summary', auth(['admin', 'superadmin']), invigilatorController.getInvigilatorStats);
 
-// Search routes (specific)
+// ============ SEARCH ROUTES ============
 router.get('/search/:query', auth(['admin', 'superadmin']), invigilatorController.searchInvigilators);
 
-// Deleted routes (specific)
+// ============ DELETED ROUTES ============
 router.get('/deleted/all', auth(['admin', 'superadmin']), invigilatorController.getDeletedInvigilators);
 
-// Duty routes (specific)
+// ============ DUTY ROUTES ============
 router.post('/duties/bulk', auth(['admin', 'superadmin']), invigilatorDutyController.bulkAssignDuties);
 router.get('/duties/by-date/:examDate', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByDate);
 router.get('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByBatch);
@@ -25,11 +42,18 @@ router.put('/duties/:id/attendance', auth(['admin', 'superadmin']), invigilatorD
 router.delete('/duties/:id', auth(['admin', 'superadmin']), invigilatorDutyController.deleteDuty);
 router.delete('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.deleteBatch);
 
-// PDF generation route (specific)
+// ============ PDF GENERATION ROUTE ============
 router.get("/invigilator-attendance/:examDate/pdf", async (req, res) => {
   try {
     const examDate = req.params.examDate;
     console.log('Generating PDF for date:', examDate);
+    
+    // Set CORS headers
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
     
     // Parse date - handle different formats
     let startDate, endDate;
@@ -83,7 +107,7 @@ router.get("/invigilator-attendance/:examDate/pdf", async (req, res) => {
   }
 });
 
-// CRUD routes (generic - place these LAST)
+// ============ CRUD ROUTES (GENERIC - PLACE THESE LAST) ============
 router.get('/', auth(['admin', 'superadmin']), invigilatorController.getAllInvigilators);
 router.get('/:id', auth(['admin', 'superadmin']), invigilatorController.getInvigilatorById);
 
