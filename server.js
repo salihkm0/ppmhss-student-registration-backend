@@ -7,8 +7,8 @@ const path = require('path');
 // Import routes
 const studentRoutes = require('./routes/studentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const invigilatorRoutes = require('./routes/invigilatorRoutes');
-// const examInvigilatorRoutes = require('./routes/examInvigilator');
+const invigilatorRoutes = require('./routes/invigilatorRoutes'); // This is different from exam invigilator
+const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // Make sure this path is correct
 const roomRoutes = require('./routes/roomRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 
@@ -27,6 +27,10 @@ app.use(cors({
     ],
     credentials: true
 }));
+
+// Add this to ensure OPTIONS requests are handled
+app.options('*', cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -59,11 +63,11 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// API Routes
+// API Routes - Make sure these paths are correct
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/invigilator', invigilatorRoutes);
-// app.use('/api/exam-invigilator', examInvigilatorRoutes);
+app.use('/api/invigilator', invigilatorRoutes); // Regular invigilator routes
+app.use('/api/exam-invigilator', examInvigilatorRoutes); // Exam invigilator routes
 app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 
@@ -177,7 +181,7 @@ app.get('/test-simple-slips', async (req, res) => {
 });
 
 app.get('/update', (req, res) => {
-    res.send('Welcome to the Student Registration API,added invigilator login feature');
+    res.send('Welcome to the Student Registration API, added invigilator login feature');
 });
 
 // Error handling middleware
