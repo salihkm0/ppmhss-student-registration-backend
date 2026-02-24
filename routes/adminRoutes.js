@@ -6,90 +6,61 @@ const auth = require("../middleware/auth");
 const Student = require("../models/Student");
 const { body } = require('express-validator');
 
-// ============ CORS PREFLIGHT HANDLER ============
-// Handle OPTIONS requests for all routes in this file
-router.options('*', (req, res) => {
-    console.log('Admin Routes - Handling OPTIONS preflight request');
-    const origin = req.headers.origin;
-    
-    // Set CORS headers
-    if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
-    } else {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    // Send response for preflight
-    res.status(200).end();
-});
-
-// ============ PUBLIC ROUTES ============
+// Public routes
 router.post("/login", adminController.login);
 router.post("/setup", adminController.setupAdmin);
 
-// ============ PROTECTED ROUTES (ADMIN ONLY) ============
-
-// Dashboard stats
+// Protected routes (admin only)
 router.get(
   "/dashboard/stats",
   auth(["admin", "superadmin"]),
-  adminController.getDashboardStats
+  adminController.getDashboardStats,
 );
 
-// SPECIAL ROUTES - MUST COME BEFORE PARAMETERIZED ROUTES
+// SPECIAL ROUTES MUST COME BEFORE PARAMETERIZED ROUTES
 router.get(
   "/students/deleted",
   auth(["admin", "superadmin"]),
-  studentController.getDeletedStudents
+  studentController.getDeletedStudents,
 );
-
 router.get(
   "/students/room-distribution",
   auth(["admin", "superadmin"]),
-  studentController.getRoomDistribution
+  studentController.getRoomDistribution,
 );
-
 router.get(
   "/export",
   auth(["admin", "superadmin"]),
-  studentController.exportStudents
+  studentController.exportStudents,
 );
 
 // Soft delete routes
 router.delete(
   "/students/soft-delete/:studentId",
   auth(["admin", "superadmin"]),
-  studentController.softDeleteStudent
+  studentController.softDeleteStudent,
 );
-
 router.post(
   "/students/restore/:studentId",
   auth(["admin", "superadmin"]),
-  studentController.restoreStudent
+  studentController.restoreStudent,
 );
-
 router.delete(
   "/students/hard-delete/:studentId",
   auth(["superadmin"]),
-  studentController.hardDeleteStudent
+  studentController.hardDeleteStudent,
 );
 
-// Student management routes
+// Student routes
 router.get(
   "/students",
   auth(["admin", "superadmin"]),
-  studentController.getAllStudents
+  studentController.getAllStudents,
 );
-
 router.get(
   "/students/:id",
   auth(["admin", "superadmin"]),
-  studentController.getStudentById
+  studentController.getStudentById,
 );
 
 // UPDATE STUDENT ROUTE - With validation for editable fields only
@@ -117,69 +88,61 @@ router.put(
   studentController.updateStudent
 );
 
-// ============ INVIGILATOR MANAGEMENT ROUTES ============
+// Invigilator management routes
 router.post(
   "/invigilators",
   auth(["admin", "superadmin"]),
-  adminController.createInvigilator
+  adminController.createInvigilator,
 );
-
 router.get(
   "/invigilators",
   auth(["admin", "superadmin"]),
-  adminController.getAllInvigilators
+  adminController.getAllInvigilators,
 );
-
 router.get(
   "/invigilators/:id",
   auth(["admin", "superadmin"]),
-  adminController.getInvigilatorById
+  adminController.getInvigilatorById,
 );
-
 router.put(
   "/invigilators/:id",
   auth(["admin", "superadmin"]),
-  adminController.updateInvigilator
+  adminController.updateInvigilator,
 );
-
 router.delete(
   "/invigilators/:id",
   auth(["admin", "superadmin"]),
-  adminController.deleteInvigilator
+  adminController.deleteInvigilator,
 );
-
 router.post(
   "/invigilators/:invigilatorId/assign-rooms",
   auth(["admin", "superadmin"]),
-  adminController.assignRoomsToInvigilator
+  adminController.assignRoomsToInvigilator,
 );
-
 router.post(
   "/invigilators/:invigilatorId/remove-room",
   auth(["admin", "superadmin"]),
-  adminController.removeRoomFromInvigilator
+  adminController.removeRoomFromInvigilator,
 );
-
 router.get(
   "/rooms/available",
   auth(["admin", "superadmin"]),
-  adminController.getAvailableRooms
+  adminController.getAvailableRooms,
 );
 
-// ============ RESULTS MANAGEMENT ROUTES ============
+// Results management routes
 router.post(
   "/results/update-ranks",
   auth(["admin", "superadmin"]),
-  adminController.updateRanksAndScholarships
+  adminController.updateRanksAndScholarships,
 );
 
 router.get(
   "/results/top-performers",
   auth(["admin", "superadmin"]),
-  adminController.getTopPerformers
+  adminController.getTopPerformers,
 );
 
-// ============ ROOM STATS ROUTE ============
 router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
   try {
     const studentRooms = await Student.aggregate([
@@ -206,7 +169,7 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
         ([gender, count]) => ({
           _id: gender,
           count: count,
-        })
+        }),
       );
 
       return {
@@ -217,13 +180,6 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
         genderCounts: genderCountsArray,
       };
     });
-
-    // Set CORS headers explicitly for this route
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
 
     res.json({
       success: true,
@@ -239,7 +195,7 @@ router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
   }
 });
 
-// ============ ATTENDANCE SHEET GENERATION ============
+// Generate attendance sheet
 router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
   try {
     const roomNo = parseInt(req.params.roomNo);
@@ -256,7 +212,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo aadhaarNo medium")
+      .select("name registrationCode seatNo aadhaarNo medium") // Only select needed fields
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -283,13 +239,6 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       autoPrint: req.query.print === "true",
     };
 
-    // Set CORS headers for PDF response
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
-
     // Render the EJS template
     res.render("attendance-sheet", templateData);
   } catch (error) {
@@ -301,7 +250,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
   }
 });
 
-// ============ EXAM SLIPS GENERATION ============
+// Generate exam slips
 router.get("/exam-slips/:roomNo", async (req, res) => {
   try {
     const roomNo = parseInt(req.params.roomNo);
@@ -319,7 +268,7 @@ router.get("/exam-slips/:roomNo", async (req, res) => {
       isDeleted: false,
     })
       .select(
-        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address"
+        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address",
       )
       .sort({ seatNo: 1 });
 
@@ -348,13 +297,6 @@ router.get("/exam-slips/:roomNo", async (req, res) => {
       autoPrint: req.query.print === "true",
     };
 
-    // Set CORS headers
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
-
     res.render("exam-slips", templateData);
   } catch (error) {
     console.error("Error generating exam slips:", error);
@@ -365,7 +307,7 @@ router.get("/exam-slips/:roomNo", async (req, res) => {
   }
 });
 
-// ============ SIMPLE EXAM SLIPS GENERATION ============
+// Generate simple exam slips
 router.get("/simple-exam-slips/:roomNo", async (req, res) => {
   try {
     const roomNo = parseInt(req.params.roomNo);
@@ -382,7 +324,7 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo studyingClass medium")
+      .select("name registrationCode seatNo studyingClass")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -406,13 +348,6 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       isPreview: req.query.preview !== "false",
       autoPrint: req.query.print === "true",
     };
-
-    // Set CORS headers
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
 
     res.render("simple-exam-slips", templateData);
   } catch (error) {
