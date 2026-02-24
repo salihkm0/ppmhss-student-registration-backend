@@ -118,16 +118,23 @@
         .qp-type-cell {
             text-align: center !important;
             font-weight: bold;
+            background-color: transparent !important;
         }
         
-        .qp-A {
-            background-color: #e6f3ff;
-            color: #0066cc;
+        /* Empty row styling - completely transparent */
+        .empty-row {
+            background-color: transparent !important;
         }
         
-        .qp-B {
-            background-color: #fff0e6;
-            color: #cc6600;
+        .empty-row td {
+            background-color: transparent !important;
+            color: transparent !important;
+            border: 0.5px solid #000; /* Keep borders */
+        }
+        
+        .empty-row .attendance-box,
+        .empty-row .mark-box {
+            display: none; /* Completely hide the boxes */
         }
         
         /* Column widths */
@@ -215,12 +222,17 @@
                 background-color: #f0f0f0 !important;
             }
             
-            .qp-A {
-                background-color: #e6f3ff !important;
+            .qp-type-cell {
+                background-color: transparent !important;
             }
             
-            .qp-B {
-                background-color: #fff0e6 !important;
+            .empty-row {
+                background-color: transparent !important;
+            }
+            
+            .empty-row td {
+                background-color: transparent !important;
+                color: transparent !important;
             }
         }
         
@@ -324,14 +336,7 @@
             width: 12px;
             height: 12px;
             border: 1px solid #000;
-        }
-        
-        .legend-box.A {
-            background-color: #e6f3ff;
-        }
-        
-        .legend-box.B {
-            background-color: #fff0e6;
+            background-color: transparent !important;
         }
     </style>
 </head>
@@ -373,14 +378,14 @@
                         Time: <strong><%= safeExamTime %></strong>
                     </div>
                     
-                    <!-- Question Paper Type Legend -->
+                    <!-- Question Paper Type Legend - Black and White -->
                     <div class="qp-legend">
                         <div class="legend-item">
-                            <div class="legend-box A"></div>
+                            <div class="legend-box"></div>
                             <span>Question Paper Type A</span>
                         </div>
                         <div class="legend-item">
-                            <div class="legend-box B"></div>
+                            <div class="legend-box"></div>
                             <span>Question Paper Type B</span>
                         </div>
                     </div>
@@ -406,7 +411,6 @@
                             <% pageStudents.forEach((student, index) => { 
                                 const slNo = pageIndex * 20 + index + 1;
                                 const qpType = getQuestionPaperType(globalIndex);
-                                const qpClass = qpType === 'A' ? 'qp-A' : 'qp-B';
                                 globalIndex++; // Increment global index for next student
                                 
                                 // Format Aadhaar number to show last 6 digits only
@@ -428,7 +432,7 @@
                                 <td class="medium medium-cell">
                                     <%= student.medium ? student.medium : '-' %>
                                 </td>
-                                <td class="qp-type qp-type-cell <%= qpClass %>">
+                                <td class="qp-type qp-type-cell">
                                     <strong><%= qpType %></strong>
                                 </td>
                                 <td class="signature">
@@ -443,29 +447,22 @@
                             </tr>
                             <% }) %>
                             
-                            <!-- Fill remaining rows if less than 20 -->
+                            <!-- Fill remaining rows if less than 20 - COMPLETELY TRANSPARENT -->
                             <% if (pageStudents.length < 20) { %>
                                 <% for (let i = pageStudents.length; i < 20; i++) { 
-                                    const qpType = getQuestionPaperType(globalIndex);
-                                    const qpClass = qpType === 'A' ? 'qp-A' : 'qp-B';
+                                    // Still increment globalIndex to maintain sequence
                                     globalIndex++;
                                 %>
-                                <tr>
+                                <tr class="empty-row">
                                     <td class="sl-no"><%= pageIndex * 20 + i + 1 %></td>
                                     <td class="reg-no"></td>
                                     <td class="student-name student-name-cell"></td>
                                     <td class="aadhaar-no aadhaar-cell"></td>
                                     <td class="medium medium-cell"></td>
-                                    <td class="qp-type qp-type-cell <%= qpClass %>">
-                                        <strong><%= qpType %></strong>
-                                    </td>
+                                    <td class="qp-type qp-type-cell"></td>
                                     <td class="signature"></td>
-                                    <td class="attendance">
-                                        <div class="attendance-box"></div>
-                                    </td>
-                                    <td class="mark">
-                                        <div class="mark-box"></div>
-                                    </td>
+                                    <td class="attendance"></td>
+                                    <td class="mark"></td>
                                 </tr>
                                 <% } %>
                             <% } %>
