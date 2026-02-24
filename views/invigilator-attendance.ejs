@@ -30,6 +30,24 @@
             max-width: 277mm;
             margin: 0 auto;
             padding: 2mm;
+            position: relative;
+            border: 1px solid #000;
+        }
+        
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 50px;
+            font-weight: bold;
+            color: rgba(125, 125, 125, 0.1);
+            pointer-events: none;
+            z-index: -1;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 5px;
         }
         
         /* Header */
@@ -58,16 +76,17 @@
             text-align: left;
             margin-top: 2mm;
             display: flex;
-            align-items: center;
+            /* align-items: center; */
+            margin-top: 5px;
         }
         
         .date-label {
-            margin-right: 3mm;
+            margin-right: 2mm;
         }
         
         .date-value {
             border-bottom: 1px solid #000;
-            min-width: 50mm;
+            min-width: 30mm;
             padding: 0 2mm;
         }
         
@@ -177,6 +196,12 @@
             .signature-box {
                 border: 0.5px solid #000;
             }
+            
+            .watermark {
+                color: rgba(0, 0, 0, 0.1) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
         
         /* Action buttons */
@@ -225,13 +250,16 @@
     </style>
 </head>
 <body>
+    <!-- Watermark -->
+    <div class="watermark">PPM HSS KOTTUKKARA</div>
+    
     <%
-        const safeExamDate = typeof examDate !== 'undefined' ? examDate : '______';
+        const safeExamDate = typeof examDate !== 'undefined' ? examDate : ' ';
         const safeDuties = typeof duties !== 'undefined' ? duties : [];
         const safeTotalInvigilators = typeof totalInvigilators !== 'undefined' ? totalInvigilators : 0;
         const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
         const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
-        const safeExamTime = typeof examTime !== 'undefined' ? examTime : '______';
+        const safeExamTime = typeof examTime !== 'undefined' ? examTime : ' ';
         const safeExamCenter = typeof examCenter !== 'undefined' ? examCenter : 'PPMHSS KOTTUKKARA';
     %>
     
@@ -280,7 +308,7 @@
                             <td class="duty-to"><%= duty.dutyTo || '' %></td>
                             <td class="room-no"><%= duty.roomNo || '' %></td>
                             <td class="signature">
-                                <div class="signature-box"></div>
+                                <!-- <div class="signature-box"></div> -->
                             </td>
                             <td class="remarks"><%= duty.remarks || '' %></td>
                         </tr>
@@ -298,7 +326,7 @@
                             <td class="duty-to"></td>
                             <td class="room-no"></td>
                             <td class="signature">
-                                <div class="signature-box"></div>
+                                <!-- <div class="signature-box"></div> -->
                             </td>
                             <td class="remarks"></td>
                         </tr>
@@ -316,7 +344,7 @@
                         <td class="duty-to"></td>
                         <td class="room-no"></td>
                         <td class="signature">
-                            <div class="signature-box"></div>
+                            <!-- <div class="signature-box"></div> -->
                         </td>
                         <td class="remarks"></td>
                     </tr>
@@ -328,22 +356,16 @@
         <!-- Footer -->
         <div class="footer">
             <div class="footer-info">
-                <div>
-                    <span class="total-count">Total Invigilators: <%= safeTotalInvigilators %></span>
+                <div style="margin-top: 15px;">
+                    <span class="total-count">Chief Invigilator</span>
+                    <span class="total-count">Name: ________________________________________.    </span>
+                    <span class="total-count" style="margin-left: 10px;">Signature: ________________________________________</span> 
                 </div>
-                <div>
-                    <span>Present: ______ | Absent: ______</span>
-                </div>
-            </div>
-            <div class="chief-invigilator">
-                <div class="chief-label">Chief Invigilator Signature:</div>
-                <div class="signature-line"></div>
-                <div style="font-size: 7pt; margin-top: 1mm;">(Name & Date)</div>
             </div>
         </div>
         
         <!-- Footer note -->
-        <div style="font-size: 7pt; text-align: center; margin-top: 1mm; color: #555;">
+        <div style="font-size: 7pt; text-align: center; margin-top: 6mm; color: #555;">
             Note: Invigilators must sign after completing duty. Remarks column for any special notes.
         </div>
     </div>

@@ -52,7 +52,7 @@
         /* Individual slip styling */
         .slip-container {
             border: 1px solid #000;
-            padding: 3mm;
+            padding: 2mm;
             position: relative;
             page-break-inside: avoid;
             break-inside: avoid;
@@ -60,152 +60,86 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             height: 34.25mm;
             position: relative;
         }
         
-        /* QP Type Indicator - Prominent */
-        .qp-type-badge {
-            position: absolute;
-            top: 2mm;
-            right: 3mm;
-            width: 10mm;
-            height: 10mm;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14pt;
-            color: white;
-            z-index: 2;
-        }
-        
-        .qp-type-A {
-            background-color: #0066cc;
-        }
-        
-        .qp-type-B {
-            background-color: #cc6600;
-        }
-        
-        /* Watermark */
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 70px;
-            color: rgba(0, 0, 0, 0.1);
-            font-weight: bold;
-            pointer-events: none;
-            z-index: -1;
-            white-space: nowrap;
-            opacity: 0.7;
-        }
-        
-        /* Header - Centered */
+        /* Header */
         .slip-header {
             text-align: center;
-            margin-bottom: 1.5mm;
-            position: relative;
-            z-index: 1;
+            margin-bottom: 0.5mm;
         }
         
         .exam-name {
             font-size: 10pt;
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 0.5mm;
             letter-spacing: 0.1px;
+            line-height: 1.2;
         }
         
         .school-name {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-bottom: .7mm;
-        }
-        
-        /* Registration Number */
-        .reg-number {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14pt;
-            margin: 1mm 0;
-            padding: 0.5mm;
-            border: 0.5px solid #000;
-            position: relative;
-            z-index: 1;
-            background: white;
-        }
-        
-        .reg-number span {
-            font-size: 10pt;
-        }
-        
-        /* Room Number */
-        .room-number {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14pt;
-            margin: 1mm 0;
-            padding: 0.5mm;
-            border: 0.5px solid #000;
-            position: relative;
-            z-index: 1;
-            background: white;
-        }
-        
-        .room-number span {
-            font-size: 10pt;
-        }
-        
-        /* Student Info */
-        .student-info {
-            margin-top: 1mm;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .student-name {
             font-size: 9pt;
             font-weight: bold;
-            margin-bottom: 0.5mm;
-            text-align: left;
-            flex: 2;
+            margin-top: 0.5mm;
         }
         
-        .student-details {
-            font-size: 8pt;
-            color: #333;
-            text-align: right;
-            flex: 1;
-        }
-        
-        .detail-row {
-            margin-bottom: 0.3mm;
-        }
-        
-        /* Medium indicator */
-        .medium-badge {
-            display: inline-block;
-            padding: 1mm 2mm;
-            background-color: #f0f0f0;
-            border-radius: 2mm;
-            font-size: 7pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        /* Divider line */
-        .divider {
-            height: 0.5px;
-            background-color: #000;
+        /* Boxed items */
+        .reg-box {
+            border: 1px solid #000;
             margin: 1mm 0;
+            padding: 1mm 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+        
+        .reg-box span {
+            font-size: 9pt;
+            font-weight: normal;
+        }
+        
+        /* Three-column layout for bottom info */
+        .bottom-info {
+            display: flex;
+            margin-top: 1mm;
+            gap: 1mm;
+        }
+        
+        .info-item {
+            flex: 1;
+            border: 1px solid #000;
+            text-align: center;
+            padding: 0.5mm 0;
+            font-weight: bold;
+            background: white;
+        }
+        
+        .info-item .label {
+            font-size: 7pt;
+            font-weight: normal;
+            display: block;
+            color: #333;
+        }
+        
+        .info-item .value {
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        
+        /* Room box - smaller size */
+        .room-box {
+            border: 1px solid #000;
+            margin: 1mm 0;
+            padding: 0.5mm 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt; /* Reduced from 12pt to 10pt */
+        }
+        
+        .room-box span {
+            font-size: 8pt;
+            font-weight: normal;
         }
         
         /* Print Styles */
@@ -220,48 +154,26 @@
             
             .page-container {
                 margin: 0;
-                padding: 0;
+                padding: 8mm 10mm;
                 width: 100%;
                 height: 100%;
                 page-break-after: always;
+                border: none;
             }
             
             .slips-grid {
                 width: 100%;
                 height: 100%;
-                padding: 8mm 10mm;
-                box-sizing: border-box;
             }
             
             .slip-container {
                 border: 1px solid #000 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                box-shadow: none !important;
             }
             
-            .qp-type-A {
-                background-color: #0066cc !important;
-                color: white !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .qp-type-B {
-                background-color: #cc6600 !important;
-                color: white !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .medium-badge {
-                background-color: #f0f0f0 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            @page :first {
-                margin: 5mm;
+            .reg-box, .room-box, .info-item {
+                border: 1px solid #000 !important;
             }
             
             @page {
@@ -273,7 +185,7 @@
             }
         }
         
-        /* Action Buttons (for preview) */
+        /* Action Buttons */
         .action-buttons {
             text-align: center;
             margin-top: 10mm;
@@ -307,95 +219,53 @@
             margin-left: 8px;
         }
         
-        /* Page break */
         .page-break {
             page-break-before: always;
-        }
-        
-        /* Force visibility of borders in print */
-        .slip-container {
-            -webkit-box-shadow: inset 0 0 0 1px #000;
-            -moz-box-shadow: inset 0 0 0 1px #000;
-            box-shadow: inset 0 0 0 1px #000;
         }
     </style>
 </head>
 <body>
-    <%
-        // Function to determine question paper type (alternating A/B based on index)
-        function getQuestionPaperType(index) {
-            return (index % 2 === 0) ? 'A' : 'B';
-        }
-        
-        // Track global index across all pages
-        let globalIndex = 0;
-    %>
-    
     <% studentPages.forEach((pageStudents, pageIndex) => { %>
         <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
-            <!-- Watermark -->
-            <div class="watermark">PPMHSS KOTTUKKARA</div>
-            
             <div class="slips-grid">
-                <% pageStudents.forEach((student) => { 
-                    const qpType = getQuestionPaperType(globalIndex);
-                    globalIndex++;
-                %>
+                <% pageStudents.forEach((student) => { %>
                 <div class="slip-container">
-                    <!-- QP Type Badge -->
-                    <div class="qp-type-badge qp-type-<%= qpType %>">
-                        <%= qpType %>
-                    </div>
-                    
                     <!-- Header -->
                     <div class="slip-header">
                         <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
-                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                        <!-- <div class="school-name">PPM HSS KOTTUKKARA</div> -->
                     </div>
-                    
-                    <!-- Divider -->
-                    <div class="divider"></div>
                     
                     <!-- Registration Number -->
-                    <div class="reg-number">
-                        <span>REG.No.:</span> <%= student.registrationCode %>
+                    <div class="reg-box">
+                        REG.No.: <%= student.registrationCode %>
                     </div>
-                    
-                    <!-- Room Number -->
-                    <div class="room-number">
-                        <span>Room.No.:</span> <%= roomNo %>
-                    </div>
-                    
-                    <!-- Student Info with Medium -->
-                    <div class="student-info">
-                        <div class="student-name">
-                            <%= student.name || '' %>
+
+                    <!-- Medium and QP Type in boxes -->
+                    <div class="bottom-info">
+                        <div class="info-item">
+                            <span class="label">Medium</span>
+                            <span class="value"><%= student.medium || 'Malayalam' %></span>
                         </div>
-                        <div class="student-details">
-                            <% if (student.studyingClass) { %>
-                            <div class="detail-row">Class: <%= student.studyingClass %></div>
-                            <% } %>
-                            <div class="detail-row">
-                                <span class="medium-badge">
-                                    <%= student.medium ? student.medium : 'N/A' %>
-                                </span>
-                            </div>
+                        <div class="info-item">
+                            <span class="label">QP Type</span>
+                            <span class="value"><%= student.qpType || 'A' %></span>
                         </div>
                     </div>
                     
-                    <!-- Seat Number (if available) -->
-                    <% if (student.seatNo) { %>
-                    <div style="font-size: 7pt; text-align: right; margin-top: 1mm; color: #666;">
-                        Seat: <%= student.seatNo %>
+                    <!-- Room Number - smaller now -->
+                    <div class="room-box">
+                        Room : <%= roomNo %>
                     </div>
-                    <% } %>
+                    
+                    
                 </div>
                 <% }) %>
             </div>
         </div>
     <% }) %>
     
-    <!-- Action Buttons (Only for Preview) -->
+    <!-- Action Buttons -->
     <% if (isPreview) { %>
     <div class="action-buttons no-print">
         <button class="print-button" onclick="window.print()">🖨️ Print All Slips</button>
@@ -405,7 +275,6 @@
     <% } %>
     
     <script>
-        // Auto-print if specified
         <% if (autoPrint) { %>
         window.addEventListener('load', function() {
             setTimeout(function() {
@@ -414,7 +283,6 @@
         });
         <% } %>
         
-        // Add print functionality
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'p') {
                 e.preventDefault();
@@ -422,7 +290,6 @@
             }
         });
         
-        // Function to print only current page
         function printCurrentPage() {
             const originalBody = document.body.innerHTML;
             const pageContent = document.querySelector('.page-container').outerHTML;
@@ -432,31 +299,6 @@
             document.body.innerHTML = originalBody;
             window.location.reload();
         }
-        
-        // Force borders and colors in print
-        document.addEventListener('DOMContentLoaded', function() {
-            const style = document.createElement('style');
-            style.textContent = `
-                @media print {
-                    .slip-container {
-                        -webkit-box-shadow: inset 0 0 0 1px #000 !important;
-                        -moz-box-shadow: inset 0 0 0 1px #000 !important;
-                        box-shadow: inset 0 0 0 1px #000 !important;
-                    }
-                    
-                    .qp-type-A, .qp-type-B {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    
-                    body * {
-                        -webkit-print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        });
     </script>
 </body>
 </html>

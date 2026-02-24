@@ -7,8 +7,9 @@ const path = require('path');
 // Import routes
 const studentRoutes = require('./routes/studentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const invigilatorRoutes = require('./routes/invigilatorRoutes'); // This is different from exam invigilator
-const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // Make sure this path is correct
+const invigilatorRoutes = require('./routes/invigilatorRoutes'); // For invigilator login
+const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // For admin to manage invigilators
+const invigilatorDutyRoutes = require('./routes/invigilatorDutyRoutes'); // For admin to manage duties
 const roomRoutes = require('./routes/roomRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 
@@ -16,7 +17,7 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// CORS middleware
 app.use(cors({
     origin: [
         'http://localhost:5173', 
@@ -28,7 +29,6 @@ app.use(cors({
     credentials: true
 }));
 
-// Add this to ensure OPTIONS requests are handled
 app.options('*', cors());
 
 app.use(express.json());
@@ -63,11 +63,12 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// API Routes - Make sure these paths are correct
+// API Routes
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/invigilator', invigilatorRoutes); // Regular invigilator routes
-app.use('/api/exam-invigilator', examInvigilatorRoutes); // Exam invigilator routes
+app.use('/api/invigilator', invigilatorRoutes); // For invigilator login
+app.use('/api/exam-invigilator', examInvigilatorRoutes); // For admin to manage invigilators
+app.use('/api/invigilator-duties', invigilatorDutyRoutes); // For admin to manage duties
 app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 
@@ -158,20 +159,22 @@ app.get('/test-exam-slips', async (req, res) => {
 // Test simple exam slips
 app.get('/test-simple-slips', async (req, res) => {
     const testStudents = [];
-    for (let i = 1; i <= 110; i++) {
+    for (let i = 1; i <= 20; i++) {
         testStudents.push({
             name: `Muhammed Salih KM ${i}`,
             registrationCode: `PPM100${i}`,
             roomNo: 1,
             seatNo: i,
-            studyingClass: '7'
+            studyingClass: '7',
+            medium: 'Malayalam',
+            qpType: 'A'
         });
     }
     
     const templateData = {
         roomNo: 1,
         studentPages: [testStudents],
-        totalStudents: 110,
+        totalStudents: 20,
         generationDate: new Date().toLocaleDateString('en-IN'),
         isPreview: true,
         autoPrint: false
