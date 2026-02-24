@@ -64,7 +64,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/invigilator', invigilatorRoutes);
 app.use('/api/exam-invigilator', examInvigilatorRoutes);
-app.use('/api/room', roomRoutes);
+app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 
 // Test EJS templates
