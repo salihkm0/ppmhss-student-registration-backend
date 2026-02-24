@@ -1,22 +1,22 @@
-// routes/invigilatorRoutes.js
+// routes/examInvigilatorRoutes.js
 const express = require('express');
 const router = express.Router();
 const invigilatorController = require('../controllers/examInvigilator');
 const invigilatorDutyController = require('../controllers/invigilatorDutyController');
 const auth = require('../middleware/auth');
 
-// IMPORTANT: Place specific routes BEFORE dynamic :id routes
+// IMPORTANT: All routes here will be prefixed with /api/exam-invigilator
 
-// Dashboard/Stats routes (specific)
+// Dashboard/Stats routes
 router.get('/stats/summary', auth(['admin', 'superadmin']), invigilatorController.getInvigilatorStats);
 
-// Search routes (specific)
+// Search routes
 router.get('/search/:query', auth(['admin', 'superadmin']), invigilatorController.searchInvigilators);
 
-// Deleted routes (specific)
+// Deleted routes
 router.get('/deleted/all', auth(['admin', 'superadmin']), invigilatorController.getDeletedInvigilators);
 
-// Duty routes (specific)
+// Duty routes
 router.post('/duties/bulk', auth(['admin', 'superadmin']), invigilatorDutyController.bulkAssignDuties);
 router.get('/duties/by-date/:examDate', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByDate);
 router.get('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByBatch);
@@ -25,7 +25,7 @@ router.put('/duties/:id/attendance', auth(['admin', 'superadmin']), invigilatorD
 router.delete('/duties/:id', auth(['admin', 'superadmin']), invigilatorDutyController.deleteDuty);
 router.delete('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.deleteBatch);
 
-// PDF generation route (specific)
+// PDF generation route
 router.get("/invigilator-attendance/:examDate/pdf", async (req, res) => {
   try {
     const examDate = req.params.examDate;
@@ -83,17 +83,5 @@ router.get("/invigilator-attendance/:examDate/pdf", async (req, res) => {
   }
 });
 
-// CRUD routes (generic - place these LAST)
-router.get('/', auth(['admin', 'superadmin']), invigilatorController.getAllInvigilators);
-router.get('/:id', auth(['admin', 'superadmin']), invigilatorController.getInvigilatorById);
-
-router.post('/', auth(['admin', 'superadmin']), invigilatorController.createInvigilator);
-router.post('/bulk', auth(['admin', 'superadmin']), invigilatorController.bulkCreateInvigilators);
-
-router.put('/:id', auth(['admin', 'superadmin']), invigilatorController.updateInvigilator);
-router.patch('/:id/toggle-status', auth(['admin', 'superadmin']), invigilatorController.toggleInvigilatorStatus);
-
-router.delete('/:id', auth(['admin', 'superadmin']), invigilatorController.deleteInvigilator);
-router.post('/:id/restore', auth(['admin', 'superadmin']), invigilatorController.restoreInvigilator);
 
 module.exports = router;
