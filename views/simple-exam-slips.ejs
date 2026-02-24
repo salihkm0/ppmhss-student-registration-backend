@@ -34,9 +34,9 @@
             margin: 0 auto;
             position: relative;
             page-break-inside: avoid;
-            padding: 8mm 10mm; /* Increased padding for border visibility */
+            padding: 8mm 10mm;
             position: relative;
-            border: 1px solid #000; /* Border for visibility */
+            border: 1px solid #000;
         }
         
         /* Grid for 21 slips (7 rows x 3 columns) */
@@ -49,7 +49,7 @@
             width: 100%;
         }
         
-        /* Individual slip styling - SIMPLE AND CLEAN */
+        /* Individual slip styling */
         .slip-container {
             border: 1px solid #000;
             padding: 3mm;
@@ -65,14 +65,39 @@
             position: relative;
         }
         
-        /* Watermark for every page */
+        /* QP Type Indicator - Prominent */
+        .qp-type-badge {
+            position: absolute;
+            top: 2mm;
+            right: 3mm;
+            width: 10mm;
+            height: 10mm;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14pt;
+            color: white;
+            z-index: 2;
+        }
+        
+        .qp-type-A {
+            background-color: #0066cc;
+        }
+        
+        .qp-type-B {
+            background-color: #cc6600;
+        }
+        
+        /* Watermark */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 70px; /* Smaller */
-            color: rgba(0, 0, 0, 0.1); /* Slightly darker for better visibility */
+            font-size: 70px;
+            color: rgba(0, 0, 0, 0.1);
             font-weight: bold;
             pointer-events: none;
             z-index: -1;
@@ -102,12 +127,12 @@
             margin-bottom: .7mm;
         }
         
-        /* Registration Number - Prominent */
+        /* Registration Number */
         .reg-number {
             text-align: center;
             font-weight: bold;
             font-size: 14pt;
-            margin: 1mm;
+            margin: 1mm 0;
             padding: 0.5mm;
             border: 0.5px solid #000;
             position: relative;
@@ -119,26 +144,61 @@
             font-size: 10pt;
         }
         
-        /* Student Info - Simple */
+        /* Room Number */
+        .room-number {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14pt;
+            margin: 1mm 0;
+            padding: 0.5mm;
+            border: 0.5px solid #000;
+            position: relative;
+            z-index: 1;
+            background: white;
+        }
+        
+        .room-number span {
+            font-size: 10pt;
+        }
+        
+        /* Student Info */
         .student-info {
             margin-top: 1mm;
             position: relative;
             z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .student-name {
             font-size: 9pt;
+            font-weight: bold;
             margin-bottom: 0.5mm;
+            text-align: left;
+            flex: 2;
         }
         
         .student-details {
             font-size: 8pt;
             color: #333;
-            margin-top: 1mm;
+            text-align: right;
+            flex: 1;
         }
         
         .detail-row {
             margin-bottom: 0.3mm;
+        }
+        
+        /* Medium indicator */
+        .medium-badge {
+            display: inline-block;
+            padding: 1mm 2mm;
+            background-color: #f0f0f0;
+            border-radius: 2mm;
+            font-size: 7pt;
+            font-weight: bold;
+            text-transform: uppercase;
         }
         
         /* Divider line */
@@ -148,24 +208,7 @@
             margin: 1mm 0;
         }
         
-        /* Optional: Photo placeholder */
-        .photo-placeholder {
-            position: absolute;
-            top: 2mm;
-            right: 2mm;
-            width: 12mm;
-            height: 15mm;
-            border: 0.5px dashed #666;
-            background-color: #f9f9f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 5pt;
-            color: #999;
-            text-align: center;
-        }
-        
-        /* Print Styles - FIX FOR RIGHT BORDER */
+        /* Print Styles */
         @media print {
             body {
                 margin: 0;
@@ -197,7 +240,26 @@
                 box-shadow: none !important;
             }
             
-            /* Ensure right border is visible in print */
+            .qp-type-A {
+                background-color: #0066cc !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .qp-type-B {
+                background-color: #cc6600 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .medium-badge {
+                background-color: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
             @page :first {
                 margin: 5mm;
             }
@@ -259,16 +321,33 @@
     </style>
 </head>
 <body>
+    <%
+        // Function to determine question paper type (alternating A/B based on index)
+        function getQuestionPaperType(index) {
+            return (index % 2 === 0) ? 'A' : 'B';
+        }
+        
+        // Track global index across all pages
+        let globalIndex = 0;
+    %>
+    
     <% studentPages.forEach((pageStudents, pageIndex) => { %>
         <div class="page-container <%= pageIndex > 0 ? 'page-break' : '' %>">
-             <!-- Watermark -->
-                <div class="watermark">PPMHSS KOTTUKKARA</div>
+            <!-- Watermark -->
+            <div class="watermark">PPMHSS KOTTUKKARA</div>
+            
             <div class="slips-grid">
-                <% pageStudents.forEach((student, index) => { %>
+                <% pageStudents.forEach((student) => { 
+                    const qpType = getQuestionPaperType(globalIndex);
+                    globalIndex++;
+                %>
                 <div class="slip-container">
-                   
+                    <!-- QP Type Badge -->
+                    <div class="qp-type-badge qp-type-<%= qpType %>">
+                        <%= qpType %>
+                    </div>
                     
-                    <!-- Header - EXACTLY LIKE YOUR SCREENSHOT -->
+                    <!-- Header -->
                     <div class="slip-header">
                         <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
                         <div class="school-name">PPMHSS KOTTUKKARA</div>
@@ -279,13 +358,37 @@
                     
                     <!-- Registration Number -->
                     <div class="reg-number">
-                       <span>REG.No.:</span> <%= student.registrationCode %>
+                        <span>REG.No.:</span> <%= student.registrationCode %>
                     </div>
                     
                     <!-- Room Number -->
-                    <div class="reg-number">
-                       <span>Room.No.:</span> <%= roomNo %>
+                    <div class="room-number">
+                        <span>Room.No.:</span> <%= roomNo %>
                     </div>
+                    
+                    <!-- Student Info with Medium -->
+                    <div class="student-info">
+                        <div class="student-name">
+                            <%= student.name || '' %>
+                        </div>
+                        <div class="student-details">
+                            <% if (student.studyingClass) { %>
+                            <div class="detail-row">Class: <%= student.studyingClass %></div>
+                            <% } %>
+                            <div class="detail-row">
+                                <span class="medium-badge">
+                                    <%= student.medium ? student.medium : 'N/A' %>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seat Number (if available) -->
+                    <% if (student.seatNo) { %>
+                    <div style="font-size: 7pt; text-align: right; margin-top: 1mm; color: #666;">
+                        Seat: <%= student.seatNo %>
+                    </div>
+                    <% } %>
                 </div>
                 <% }) %>
             </div>
@@ -330,7 +433,7 @@
             window.location.reload();
         }
         
-        // Force borders in print
+        // Force borders and colors in print
         document.addEventListener('DOMContentLoaded', function() {
             const style = document.createElement('style');
             style.textContent = `
@@ -339,6 +442,11 @@
                         -webkit-box-shadow: inset 0 0 0 1px #000 !important;
                         -moz-box-shadow: inset 0 0 0 1px #000 !important;
                         box-shadow: inset 0 0 0 1px #000 !important;
+                    }
+                    
+                    .qp-type-A, .qp-type-B {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     
                     body * {

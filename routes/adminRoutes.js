@@ -212,7 +212,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo studyingClass fatherName gender")
+      .select("name registrationCode seatNo aadhaarNo medium") // Only select needed fields
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -239,6 +239,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       autoPrint: req.query.print === "true",
     };
 
+    // Render the EJS template
     res.render("attendance-sheet", templateData);
   } catch (error) {
     console.error("Error generating attendance sheet:", error);

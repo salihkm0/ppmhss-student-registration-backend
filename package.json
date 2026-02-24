@@ -9,8 +9,10 @@
     "setup-admin": "node setup-admin.js"
   },
   "dependencies": {
+    "@mui/x-date-pickers": "^8.27.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.3.1",
     "ejs": "^4.0.1",
     "ejs-cli": "^2.2.3",

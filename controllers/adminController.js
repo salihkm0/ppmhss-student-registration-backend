@@ -98,49 +98,151 @@ const setupAdmin = async (req, res) => {
 // Get dashboard stats
 const getDashboardStats = async (req, res) => {
     try {
-        const totalStudents = await Student.countDocuments();
+        // Get today's date range (start and end of day)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Get total students count (excluding deleted)
+        const totalStudents = await Student.countDocuments({ isDeleted: false });
+        
+        // Get today's registrations count
+        const todaysRegistrations = await Student.countDocuments({
+            createdAt: { $gte: today, $lt: tomorrow },
+            isDeleted: false
+        });
+        
         const totalInvigilators = await Invigilator.countDocuments();
 
-        const recentStudents = await Student.find()
+        const recentStudents = await Student.find({ isDeleted: false })
             .sort({ createdAt: -1 })
             .limit(10)
             .select('name registrationCode applicationNo roomNo seatNo createdAt examMarks');
 
         const genderStats = await Student.aggregate([
+            { $match: { isDeleted: false } },
             { $group: { _id: '$gender', count: { $sum: 1 } } },
         ]);
 
         const classStats = await Student.aggregate([
+            { $match: { isDeleted: false } },
             { $group: { _id: '$studyingClass', count: { $sum: 1 } } },
             { $sort: { _id: 1 } },
         ]);
 
+        // Medium-wise statistics
+        const mediumStats = await Student.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: '$medium', count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+        ]);
+
         const roomStats = await Student.aggregate([
+            { $match: { isDeleted: false } },
             { $group: { _id: '$roomNo', count: { $sum: 1 } } },
             { $sort: { _id: 1 } },
         ]);
 
         const resultStats = await Student.aggregate([
+            { $match: { isDeleted: false } },
             { $group: { _id: '$resultStatus', count: { $sum: 1 } } },
         ]);
 
-        const topPerformers = await Student.find({ examMarks: { $gt: 0 } })
+        const topPerformers = await Student.find({ examMarks: { $gt: 0 }, isDeleted: false })
             .sort({ examMarks: -1 })
             .limit(5)
             .select('name registrationCode examMarks rank scholarship');
+
+        // Get day-wise registration trend for the last 7 days
+        const last7Days = [];
+        const registrationTrend = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            date.setHours(0, 0, 0, 0);
+            
+            const nextDate = new Date(date);
+            nextDate.setDate(nextDate.getDate() + 1);
+            
+            const count = await Student.countDocuments({
+                createdAt: { $gte: date, $lt: nextDate },
+                isDeleted: false
+            });
+            
+            // Format date as DD MMM (e.g., "24 Feb")
+            const dayName = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+            
+            last7Days.push(dayName);
+            registrationTrend.push(count);
+        }
+
+        // Get registration trend for the last 30 days (for detailed chart)
+        const last30Days = [];
+        const registrationTrend30 = [];
+        
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            date.setHours(0, 0, 0, 0);
+            
+            const nextDate = new Date(date);
+            nextDate.setDate(nextDate.getDate() + 1);
+            
+            const count = await Student.countDocuments({
+                createdAt: { $gte: date, $lt: nextDate },
+                isDeleted: false
+            });
+            
+            // Format date as DD MMM (e.g., "24 Feb")
+            const dayName = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+            
+            last30Days.push(dayName);
+            registrationTrend30.push(count);
+        }
+
+        // Get hourly registration distribution for today
+        const hourlyDistribution = [];
+        for (let hour = 0; hour < 24; hour++) {
+            const hourStart = new Date(today);
+            hourStart.setHours(hour, 0, 0, 0);
+            
+            const hourEnd = new Date(today);
+            hourEnd.setHours(hour + 1, 0, 0, 0);
+            
+            const count = await Student.countDocuments({
+                createdAt: { $gte: hourStart, $lt: hourEnd },
+                isDeleted: false
+            });
+            
+            hourlyDistribution.push({
+                hour: hour.toString().padStart(2, '0') + ':00',
+                count
+            });
+        }
 
         res.json({
             success: true,
             stats: {
                 totalStudents,
+                todaysRegistrations,
                 totalInvigilators,
                 gender: genderStats,
                 class: classStats,
+                medium: mediumStats,
                 rooms: roomStats,
                 results: resultStats,
             },
             recent: recentStudents,
             topPerformers,
+            trends: {
+                last7Days,
+                registrationTrend,
+                last30Days,
+                registrationTrend30,
+                hourlyDistribution
+            }
         });
     } catch (error) {
         console.error('Dashboard error:', error);
