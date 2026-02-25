@@ -256,7 +256,6 @@
                 <div class="room-card">
                     <div class="room-header">
                         <div class="room-number">ROOM <%= pair.left.roomNo %></div>
-                        <!-- <div class="room-label"><%= pair.left.invigilatorName ? 'INVIGILATOR: ' + pair.left.invigilatorName : '&nbsp;' %></div> -->
                     </div>
                     
                     <div class="range-container">
@@ -275,23 +274,7 @@
                 <% } else { %>
                 <!-- Empty placeholder for missing room -->
                 <div class="room-card empty">
-                    <div class="room-header">
-                        <div class="room-number">ROOM ---</div>
-                        <div class="room-label">&nbsp;</div>
-                    </div>
                     
-                    <div class="range-container">
-                        <div class="range-box">
-                            <div class="range-label">REGISTER NUMBERS</div>
-                            <div class="range-value">---</div>
-                            <div class="to-text">TO</div>
-                            <div class="range-value">---</div>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #666; padding-top: 3mm; margin-top: auto; color: #666;">
-                        Total: 0 Students
-                    </div>
                 </div>
                 <% } %>
 
@@ -302,7 +285,6 @@
                 <div class="room-card">
                     <div class="room-header">
                         <div class="room-number">ROOM <%= pair.right.roomNo %></div>
-                        <div class="room-label"><%= pair.right.invigilatorName ? 'INVIGILATOR: ' + pair.right.invigilatorName : '&nbsp;' %></div>
                     </div>
                     
                     <div class="range-container">
@@ -321,23 +303,7 @@
                 <% } else if (pair.left) { %>
                 <!-- If no right room but left exists, show empty placeholder -->
                 <div class="room-card empty">
-                    <div class="room-header">
-                        <div class="room-number">ROOM ---</div>
-                        <div class="room-label">&nbsp;</div>
-                    </div>
                     
-                    <div class="range-container">
-                        <div class="range-box">
-                            <div class="range-label">REGISTER NUMBERS</div>
-                            <div class="range-value">---</div>
-                            <div class="to-text">TO</div>
-                            <div class="range-value">---</div>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #666; padding-top: 3mm; margin-top: auto; color: #666;">
-                        Total: 0 Students
-                    </div>
                 </div>
                 <% } %>
             </div>
