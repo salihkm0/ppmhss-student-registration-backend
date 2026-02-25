@@ -212,7 +212,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo aadhaarNo medium") // Only select needed fields
+      .select("name registrationCode seatNo aadhaarNo medium gender") // Added gender to select fields
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -229,10 +229,25 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
     let englishTypeB = 0;
     let malayalamTypeA = 0;
     let malayalamTypeB = 0;
+    
+    // Gender counts
+    let maleCount = 0;
+    let femaleCount = 0;
+    let otherCount = 0;
 
     students.forEach((student, index) => {
       const qpType = (index % 2 === 0) ? 'A' : 'B'; // Alternate A/B based on seat order
       
+      // Count gender
+      if (student.gender === 'Male') {
+        maleCount++;
+      } else if (student.gender === 'Female') {
+        femaleCount++;
+      } else if (student.gender === 'Other') {
+        otherCount++;
+      }
+      
+      // Count medium and QP type
       if (student.medium === 'English') {
         englishCount++;
         if (qpType === 'A') englishTypeA++;
@@ -268,7 +283,10 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
         malayalamTypeA,
         malayalamTypeB,
         totalTypeA: englishTypeA + malayalamTypeA,
-        totalTypeB: englishTypeB + malayalamTypeB
+        totalTypeB: englishTypeB + malayalamTypeB,
+        maleCount,
+        femaleCount,
+        otherCount
       }
     };
 

@@ -93,11 +93,12 @@
         }
         
         .attendance-table td {
-            padding: 0.5mm 1mm;
+            padding: 1mm;
             border: 0.5px solid #000;
             text-align: center;
             font-size: 8pt;
             height: 5mm;
+
         }
         
         .student-name-cell {
@@ -182,6 +183,7 @@
             border-collapse: collapse;
             border: 1px solid #000;
             font-size: 9pt;
+            margin-bottom: 2mm;
         }
         
         .summary-table th {
@@ -209,12 +211,45 @@
             padding-left: 2mm;
         }
         
+        /* Gender Summary Table */
+        .gender-summary {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            font-size: 9pt;
+        }
+        
+        .gender-summary th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            padding: 1mm;
+            border: 1px solid #000;
+        }
+        
+        .gender-summary td {
+            padding: 1mm;
+            border: 1px solid #000;
+            text-align: center;
+        }
+        
+        .gender-summary .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .gender-label {
+            font-weight: bold;
+            text-align: left;
+            padding-left: 2mm;
+        }
+        
         /* Invigilator Section */
         .invigilator-section {
             display: flex;
             justify-content: flex-end;
             width: 100%;
-            /* margin-top: 5mm; */
+            margin-top: 4mm;
         }
         
         .invigilator-signature-line {
@@ -282,11 +317,13 @@
                 color: transparent !important;
             }
             
-            .summary-table th {
+            .summary-table th,
+            .gender-summary th {
                 background-color: #f0f0f0 !important;
             }
             
-            .summary-table .total-row {
+            .summary-table .total-row,
+            .gender-summary .total-row {
                 background-color: #f9f9f9 !important;
             }
         }
@@ -344,11 +381,9 @@
         }
         
         .table-container {
-            /* height: calc(100% - 110mm); */
             height: auto;
             overflow: hidden;
-            /* border: 1px solid #000; */
-            margin-bottom: 10mm;
+            margin-bottom: 4mm;
         }
         
         .invigilator-container {
@@ -417,7 +452,10 @@
             malayalamTypeA: 0,
             malayalamTypeB: 0,
             totalTypeA: 0,
-            totalTypeB: 0
+            totalTypeB: 0,
+            maleCount: 0,
+            femaleCount: 0,
+            otherCount: 0
         };
         
         // Function to determine question paper type (alternating A/B based on index)
@@ -445,18 +483,6 @@
                         Date: <strong><%= safeExamDate %></strong> | 
                         Time: <strong><%= safeExamTime %></strong>
                     </div>
-                    
-                    <!-- Question Paper Type Legend - Black and White -->
-                    <!-- <div class="qp-legend">
-                        <div class="legend-item">
-                            <div class="legend-box"></div>
-                            <span>Question Paper Type A</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-box"></div>
-                            <span>Question Paper Type B</span>
-                        </div>
-                    </div> -->
                 </div>
 
                 <!-- Attendance Table -->
@@ -548,7 +574,7 @@
                     </div>
                 </div>
 
-                <!-- Summary Table -->
+                <!-- Medium & QP Type Summary Table -->
                 <div class="summary-section">
                     <div class="summary-title">MEDIUM & QUESTION PAPER TYPE SUMMARY</div>
                     <table class="summary-table">
@@ -578,6 +604,39 @@
                                 <td><%= safeSummary.englishCount + safeSummary.malayalamCount %></td>
                                 <td><%= safeSummary.totalTypeA %></td>
                                 <td><%= safeSummary.totalTypeB %></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Gender Summary Table -->
+                <div style="margin-top: 2mm;">
+                    <div class="summary-title">GENDER SUMMARY</div>
+                    <table class="gender-summary">
+                        <thead>
+                            <tr>
+                                <th>Gender</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="gender-label">Male</td>
+                                <td><%= safeSummary.maleCount %></td>
+                            </tr>
+                            <tr>
+                                <td class="gender-label">Female</td>
+                                <td><%= safeSummary.femaleCount %></td>
+                            </tr>
+                            <% if (safeSummary.otherCount > 0) { %>
+                            <tr>
+                                <td class="gender-label">Other</td>
+                                <td><%= safeSummary.otherCount %></td>
+                            </tr>
+                            <% } %>
+                            <tr class="total-row">
+                                <td class="gender-label">TOTAL</td>
+                                <td><%= safeSummary.maleCount + safeSummary.femaleCount + safeSummary.otherCount %></td>
                             </tr>
                         </tbody>
                     </table>
