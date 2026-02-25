@@ -648,9 +648,11 @@
                 <div class="footer-section">
                     <div class="footer-info">
                         <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
-                        <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
-                        <div>Male: <strong><%= safeSummary.maleCount %></strong></div>
-                        <div>Female: <strong><%= safeSummary.femaleCount  %></strong></div>
+                        <div style="display: flex; gap: 10px;">
+                            <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
+                            <div>Male: <strong><%= safeSummary.maleCount %></strong></div>
+                            <div>Female: <strong><%= safeSummary.femaleCount  %></strong></div>
+                        </div>
                         <div>Generated: <%= safeGenerationDate %></div>
                     </div>
                     <div style="margin-top: 1mm; font-style: italic;">
