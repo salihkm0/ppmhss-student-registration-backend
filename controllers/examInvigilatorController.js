@@ -1,6 +1,7 @@
 // controllers/examInvigilatorController.js
 const ExamInvigilator = require('../models/ExamInvigilator');
 const InvigilatorDuty = require('../models/InvigilatorDuty');
+const Student = require('../models/Student');
 
 // @desc    Get all invigilators
 // @route   GET /api/exam-invigilator
@@ -390,6 +391,90 @@ exports.getInvigilatorStats = async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Server error while fetching statistics'
+        });
+    }
+};
+
+// @desc    Generate room register range PDF
+// @route   GET /api/rooms/register-range/pdf
+// @access  Private/Admin
+exports.generateRoomRegisterRange = async (req, res) => {
+    try {
+        const { preview, print, date } = req.query;
+
+        // Get all rooms with students
+        const rooms = await Student.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: {
+                _id: '$roomNo',
+                students: { 
+                    $push: {
+                        registrationCode: '$registrationCode',
+                        name: '$name',
+                        gender: '$gender'
+                    }
+                },
+                maleCount: {
+                    $sum: { $cond: [{ $eq: ['$gender', 'Male'] }, 1, 0] }
+                },
+                femaleCount: {
+                    $sum: { $cond: [{ $eq: ['$gender', 'Female'] }, 1, 0] }
+                },
+                otherCount: {
+                    $sum: { $cond: [{ $eq: ['$gender', 'Other'] }, 1, 0] }
+                }
+            }},
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Get invigilator assignments for the date
+        let invigilatorMap = {};
+        if (date) {
+            const examDate = new Date(date);
+            examDate.setHours(0, 0, 0, 0);
+            
+            const duties = await InvigilatorDuty.find({
+                examDate: examDate
+            }).populate('invigilatorId', 'shortName name');
+
+            duties.forEach(duty => {
+                invigilatorMap[duty.roomNo] = duty.invigilatorId?.name || duty.invigilatorId?.shortName || '';
+            });
+        }
+
+        // Format rooms data
+        const formattedRooms = rooms
+            .filter(room => room._id !== null)
+            .map(room => ({
+                roomNo: room._id,
+                students: room.students.sort((a, b) => 
+                    (a.registrationCode || '').localeCompare(b.registrationCode || '')
+                ),
+                invigilatorName: invigilatorMap[room._id] || null,
+                stats: {
+                    maleCount: room.maleCount,
+                    femaleCount: room.femaleCount,
+                    otherCount: room.otherCount,
+                    total: room.students.length
+                }
+            }));
+
+        res.render('rooms-register-range', {
+            title: 'ROOM REGISTER RANGE',
+            subtitle: 'NMEA TENDER SCHOLAR 26',
+            examCenter: 'PPM HSS KOTTUKKARA',
+            examDate: date ? new Date(date).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'),
+            rooms: formattedRooms,
+            isPreview: preview === 'true',
+            autoPrint: print === 'true',
+            showStats: true
+        });
+
+    } catch (error) {
+        console.error('Error generating room register range:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error while generating room register range'
         });
     }
 };
