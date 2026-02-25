@@ -5,16 +5,92 @@ const invigilatorDutyController = require('../controllers/invigilatorDutyControl
 const auth = require('../middleware/auth');
 
 // Duty routes
-router.post('/duties/bulk', auth(['admin', 'superadmin']), invigilatorDutyController.bulkAssignDuties);
-router.get('/duties/by-date/:examDate', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByDate);
-router.get('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.getDutiesByBatch);
-router.get('/duties/attendance-sheet/:examDate', auth(['admin', 'superadmin']), invigilatorDutyController.getAttendanceSheetData);
-router.put('/duties/:id/attendance', auth(['admin', 'superadmin']), invigilatorDutyController.markAttendance);
-router.delete('/duties/:id', auth(['admin', 'superadmin']), invigilatorDutyController.deleteDuty);
-router.delete('/duties/batch/:batchId', auth(['admin', 'superadmin']), invigilatorDutyController.deleteBatch);
+router.post('/bulk', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.bulkAssignDuties(req, res);
+    } catch (error) {
+        console.error('Error in bulk assign duties:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to bulk assign duties'
+        });
+    }
+});
+
+router.get('/by-date/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.getDutiesByDate(req, res);
+    } catch (error) {
+        console.error('Error in get duties by date:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch duties by date'
+        });
+    }
+});
+
+router.get('/batch/:batchId', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.getDutiesByBatch(req, res);
+    } catch (error) {
+        console.error('Error in get duties by batch:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch duties by batch'
+        });
+    }
+});
+
+router.get('/attendance-sheet/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.getAttendanceSheetData(req, res);
+    } catch (error) {
+        console.error('Error in get attendance sheet:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch attendance sheet data'
+        });
+    }
+});
+
+router.put('/:id/attendance', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.markAttendance(req, res);
+    } catch (error) {
+        console.error('Error in mark attendance:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to mark attendance'
+        });
+    }
+});
+
+router.delete('/:id', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.deleteDuty(req, res);
+    } catch (error) {
+        console.error('Error in delete duty:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete duty'
+        });
+    }
+});
+
+router.delete('/batch/:batchId', auth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await invigilatorDutyController.deleteBatch(req, res);
+    } catch (error) {
+        console.error('Error in delete batch:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete batch'
+        });
+    }
+});
 
 // PDF generation route
-router.get("/invigilator-attendance/:examDate/pdf", async (req, res) => {
+router.get("/attendance/:examDate/pdf", async (req, res) => {
   try {
     const examDate = req.params.examDate;
     console.log('Generating PDF for date:', examDate);

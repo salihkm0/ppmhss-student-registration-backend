@@ -8,8 +8,8 @@ const path = require('path');
 const studentRoutes = require('./routes/studentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const invigilatorRoutes = require('./routes/invigilatorRoutes'); // For invigilator login
-// const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // For admin to manage invigilators
-// const invigilatorDutyRoutes = require('./routes/invigilatorDutyRoutes'); // For admin to manage duties
+const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // For admin to manage invigilators
+const invigilatorDutyRoutes = require('./routes/invigilatorDutyRoutes'); // For admin to manage duties
 const roomRoutes = require('./routes/roomRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 
@@ -45,6 +45,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 const connectDB = require('./config/database');
 connectDB();
 
+// Request logging middleware (for debugging)
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
 // Test routes
 app.get('/api/test', (req, res) => {
     res.json({ 
@@ -67,12 +73,12 @@ app.get('/api/health', (req, res) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/invigilator', invigilatorRoutes); // For invigilator login
-// app.use('/api/exam-invigilator', examInvigilatorRoutes); // For admin to manage invigilators
-// app.use('/api/invigilator-duties', invigilatorDutyRoutes); // For admin to manage duties
+app.use('/api/exam-invigilator', examInvigilatorRoutes); // For admin to manage invigilators
+app.use('/api/invigilator-duties', invigilatorDutyRoutes); // For admin to manage duties
 app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 
-// Test EJS templates
+// Test EJS templates (keep all your existing test routes)
 app.get('/test-attendance-template', async (req, res) => {
   const templateData = {
     roomNo: 1,
