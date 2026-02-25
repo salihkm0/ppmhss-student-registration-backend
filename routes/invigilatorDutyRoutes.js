@@ -22,7 +22,7 @@ router.get('/by-date/:date', auth(["admin", "superadmin"]), getDutiesByDate);
 
 // Attendance sheet PDF - Note: This might need special handling for PDF generation
 // You might want to allow access with token in query params for PDF viewing
-router.get('/attendance/:date/pdf', auth(["admin", "superadmin"]), generateAttendanceSheet);
+router.get('/attendance/:date/pdf',generateAttendanceSheet);
 
 // Batch operations
 router.delete('/batch/:batchId', auth(["admin", "superadmin"]), deleteBatchDuties);

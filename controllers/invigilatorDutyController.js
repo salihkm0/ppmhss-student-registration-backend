@@ -77,7 +77,17 @@ exports.bulkCreateDuties = async (req, res) => {
 
     try {
         const { examDate, duties } = req.body;
-        const adminId = req.user._id;
+        
+        // FIX: Better extraction of admin ID with validation
+        const adminId = req.user?._id || req.user?.id;
+        
+        if (!adminId) {
+            await session.abortTransaction();
+            return res.status(401).json({
+                success: false,
+                error: 'Admin ID not found in token'
+            });
+        }
 
         if (!examDate || !Array.isArray(duties) || duties.length === 0) {
             return res.status(400).json({
@@ -109,7 +119,12 @@ exports.bulkCreateDuties = async (req, res) => {
         }
 
         // Process each duty
-        for (const duty of duties.filter(d => !roomMap.has(d.roomNo) || roomMap.get(d.roomNo) === d)) {
+        for (const duty of duties) {
+            // Skip if this duty was already marked as duplicate
+            if (roomMap.has(duty.roomNo) && results.failed.some(f => f.roomNo === duty.roomNo && f.error?.includes('Duplicate'))) {
+                continue;
+            }
+
             try {
                 // Check if room is already assigned for this date
                 const existingDuty = await InvigilatorDuty.findOne({
@@ -154,14 +169,14 @@ exports.bulkCreateDuties = async (req, res) => {
                     continue;
                 }
 
-                // Create the duty
+                // Create the duty with validated adminId
                 const newDuty = new InvigilatorDuty({
                     invigilatorId: duty.invigilatorId,
                     examDate: dutyDate,
                     dutyFrom: duty.dutyFrom,
                     dutyTo: duty.dutyTo,
                     roomNo: duty.roomNo,
-                    createdBy: adminId,
+                    createdBy: adminId,  // Now properly validated
                     batchId: new mongoose.Types.ObjectId().toString()
                 });
 
@@ -173,6 +188,7 @@ exports.bulkCreateDuties = async (req, res) => {
 
                 results.successful.push(populatedDuty);
             } catch (error) {
+                console.error('Error processing individual duty:', error);
                 results.failed.push({
                     ...duty,
                     error: error.message
