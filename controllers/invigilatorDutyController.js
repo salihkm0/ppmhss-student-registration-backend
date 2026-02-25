@@ -77,7 +77,7 @@ exports.bulkCreateDuties = async (req, res) => {
 
     try {
         const { examDate, duties } = req.body;
-        const adminId = req.admin._id;
+        const adminId = req.user._id;
 
         if (!examDate || !Array.isArray(duties) || duties.length === 0) {
             return res.status(400).json({
