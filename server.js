@@ -8,8 +8,10 @@ const path = require('path');
 const studentRoutes = require('./routes/studentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const invigilatorRoutes = require('./routes/invigilatorRoutes'); // For invigilator login
-const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // For admin to manage invigilators
-const invigilatorDutyRoutes = require('./routes/invigilatorDutyRoutes'); // For admin to manage duties
+// const examInvigilatorRoutes = require('./routes/examInvigilatorRoutes'); // For admin to manage invigilators
+// const invigilatorDutyRoutes = require('./routes/invigilatorDutyRoutes'); // For admin to manage duties
+const invRoutes = require('./routes/invRoutes');
+const dutyRoutes = require('./routes/dutyRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 
@@ -73,8 +75,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/invigilator', invigilatorRoutes); // For invigilator login
-app.use('/api/exam-invigilator', examInvigilatorRoutes); // For admin to manage invigilators
-app.use('/api/invigilator-duties', invigilatorDutyRoutes); // For admin to manage duties
+app.use('/api/exam-invigilator', invRoutes); // For admin to manage invigilators
+app.use('/api/invigilator-duties', dutyRoutes); // For admin to manage duties
 app.use('/api/rooms', roomRoutes);
 app.use('/api/results', resultRoutes);
 

@@ -1,10 +1,10 @@
-// routes/invigilatorDutyRoutes.js
-const express = require('express');
-const router = express.Router();
-const invigilatorDutyController = require('../controllers/invigilatorDutyController');
-const auth = require('../middleware/auth');
+// // routes/invigilatorDutyRoutes.js
+// const express = require('express');
+// const router = express.Router();
+// const invigilatorDutyController = require('../controllers/invigilatorDutyController');
+// const auth = require('../middleware/auth');
 
-// Duty routes
+// // Duty routes
 // router.post('/bulk', auth(['admin', 'superadmin']), async (req, res) => {
 //     try {
 //         await invigilatorDutyController.bulkAssignDuties(req, res);
@@ -147,4 +147,4 @@ const auth = require('../middleware/auth');
 //   }
 // });
 
-module.exports = router;
+// module.exports = router;
