@@ -162,19 +162,66 @@
             margin: 0 auto;
         }
         
+        /* Summary Table Styles */
+        .summary-section {
+            margin-top: 4mm;
+            border-top: 1px solid #000;
+            padding-top: 2mm;
+        }
+        
+        .summary-title {
+            font-weight: bold;
+            font-size: 10pt;
+            text-align: center;
+            margin-bottom: 2mm;
+            text-transform: uppercase;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            font-size: 9pt;
+        }
+        
+        .summary-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            padding: 1mm;
+            border: 1px solid #000;
+        }
+        
+        .summary-table td {
+            padding: 1mm;
+            border: 1px solid #000;
+            text-align: center;
+        }
+        
+        .summary-table .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .summary-table .medium-label {
+            font-weight: bold;
+            text-align: left;
+            padding-left: 2mm;
+        }
+        
         /* Invigilator Section */
         .invigilator-section {
             display: flex;
             justify-content: flex-end;
             width: 100%;
-            margin-top: 2mm;
+            /* margin-top: 5mm; */
         }
         
         .invigilator-signature-line {
             width: 80mm;
             border-bottom: 1px solid #000;
             text-align: center;
-            margin-top: 2mm;
+            margin-top: 6mm;
         }
         
         /* Footer */
@@ -234,6 +281,14 @@
                 background-color: transparent !important;
                 color: transparent !important;
             }
+            
+            .summary-table th {
+                background-color: #f0f0f0 !important;
+            }
+            
+            .summary-table .total-row {
+                background-color: #f9f9f9 !important;
+            }
         }
         
         /* Action Buttons */
@@ -289,8 +344,11 @@
         }
         
         .table-container {
-            height: calc(100% - 90mm);
+            /* height: calc(100% - 110mm); */
+            height: auto;
             overflow: hidden;
+            /* border: 1px solid #000; */
+            margin-bottom: 10mm;
         }
         
         .invigilator-container {
@@ -351,6 +409,16 @@
         const safeStudentPages = typeof studentPages !== 'undefined' ? studentPages : [];
         const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
         const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
+        const safeSummary = typeof summary !== 'undefined' ? summary : {
+            englishCount: 0,
+            malayalamCount: 0,
+            englishTypeA: 0,
+            englishTypeB: 0,
+            malayalamTypeA: 0,
+            malayalamTypeB: 0,
+            totalTypeA: 0,
+            totalTypeB: 0
+        };
         
         // Function to determine question paper type (alternating A/B based on index)
         function getQuestionPaperType(index) {
@@ -379,7 +447,7 @@
                     </div>
                     
                     <!-- Question Paper Type Legend - Black and White -->
-                    <div class="qp-legend">
+                    <!-- <div class="qp-legend">
                         <div class="legend-item">
                             <div class="legend-box"></div>
                             <span>Question Paper Type A</span>
@@ -388,7 +456,7 @@
                             <div class="legend-box"></div>
                             <span>Question Paper Type B</span>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Attendance Table -->
@@ -479,6 +547,43 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Summary Table -->
+                <div class="summary-section">
+                    <div class="summary-title">MEDIUM & QUESTION PAPER TYPE SUMMARY</div>
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Medium</th>
+                                <th>Total Students</th>
+                                <th>QP Type A</th>
+                                <th>QP Type B</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="medium-label">English</td>
+                                <td><%= safeSummary.englishCount %></td>
+                                <td><%= safeSummary.englishTypeA %></td>
+                                <td><%= safeSummary.englishTypeB %></td>
+                            </tr>
+                            <tr>
+                                <td class="medium-label">Malayalam</td>
+                                <td><%= safeSummary.malayalamCount %></td>
+                                <td><%= safeSummary.malayalamTypeA %></td>
+                                <td><%= safeSummary.malayalamTypeB %></td>
+                            </tr>
+                            <tr class="total-row">
+                                <td class="medium-label">TOTAL</td>
+                                <td><%= safeSummary.englishCount + safeSummary.malayalamCount %></td>
+                                <td><%= safeSummary.totalTypeA %></td>
+                                <td><%= safeSummary.totalTypeB %></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                
 
                 <!-- Footer -->
                 <div class="footer-section">

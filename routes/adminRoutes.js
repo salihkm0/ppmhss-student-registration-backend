@@ -222,6 +222,28 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       });
     }
 
+    // Calculate statistics for the summary table
+    let englishCount = 0;
+    let malayalamCount = 0;
+    let englishTypeA = 0;
+    let englishTypeB = 0;
+    let malayalamTypeA = 0;
+    let malayalamTypeB = 0;
+
+    students.forEach((student, index) => {
+      const qpType = (index % 2 === 0) ? 'A' : 'B'; // Alternate A/B based on seat order
+      
+      if (student.medium === 'English') {
+        englishCount++;
+        if (qpType === 'A') englishTypeA++;
+        else englishTypeB++;
+      } else if (student.medium === 'Malayalam') {
+        malayalamCount++;
+        if (qpType === 'A') malayalamTypeA++;
+        else malayalamTypeB++;
+      }
+    });
+
     const studentsPerPage = 20;
     const studentPages = [];
     for (let i = 0; i < students.length; i += studentsPerPage) {
@@ -237,6 +259,17 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       examTime: "10:00 AM - 11:30 PM",
       isPreview: req.query.preview !== "false",
       autoPrint: req.query.print === "true",
+      // Summary statistics
+      summary: {
+        englishCount,
+        malayalamCount,
+        englishTypeA,
+        englishTypeB,
+        malayalamTypeA,
+        malayalamTypeB,
+        totalTypeA: englishTypeA + malayalamTypeA,
+        totalTypeB: englishTypeB + malayalamTypeB
+      }
     };
 
     // Render the EJS template
@@ -324,7 +357,7 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo studyingClass")
+      .select("name registrationCode seatNo studyingClass medium") // Include medium
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -334,10 +367,18 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       });
     }
 
-    const studentsPerPage = 21;
+    // Add qpType to each student based on seat number (odd = A, even = B)
+    const studentsWithQPType = students.map(student => {
+      const studentObj = student.toObject();
+      // Determine QP Type: odd seat numbers get 'A', even get 'B'
+      studentObj.qpType = (student.seatNo % 2 === 1) ? 'A' : 'B';
+      return studentObj;
+    });
+
+    const studentsPerPage = 20; // Changed from 21 to 20
     const studentPages = [];
-    for (let i = 0; i < students.length; i += studentsPerPage) {
-      studentPages.push(students.slice(i, i + studentsPerPage));
+    for (let i = 0; i < studentsWithQPType.length; i += studentsPerPage) {
+      studentPages.push(studentsWithQPType.slice(i, i + studentsPerPage));
     }
 
     const templateData = {
