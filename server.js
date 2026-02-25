@@ -190,6 +190,68 @@ app.get('/test-simple-slips', async (req, res) => {
     res.render('simple-exam-slips', templateData);
 });
 
+// Test route for room register range
+app.get('/test-room-register-range', async (req, res) => {
+    // Sample data
+    const testRooms = [
+        {
+            roomNo: 1,
+            students: Array.from({ length: 20 }, (_, i) => ({
+                registrationCode: `PPM${1000 + i}`,
+                name: `Student ${i + 1}`,
+                gender: i % 2 === 0 ? 'Male' : 'Female'
+            })),
+            invigilatorName: 'Mr. Johnson',
+            stats: {
+                maleCount: 10,
+                femaleCount: 10,
+                otherCount: 0,
+                total: 20
+            }
+        },
+        {
+            roomNo: 2,
+            students: Array.from({ length: 20 }, (_, i) => ({
+                registrationCode: `PPM${1020 + i}`,
+                name: `Student ${i + 21}`,
+                gender: i % 3 === 0 ? 'Female' : 'Male'
+            })),
+            invigilatorName: 'Ms. Sarah',
+            stats: {
+                maleCount: 13,
+                femaleCount: 7,
+                otherCount: 0,
+                total: 20
+            }
+        },
+        {
+            roomNo: 3,
+            students: Array.from({ length: 15 }, (_, i) => ({
+                registrationCode: `PPM${1040 + i}`,
+                name: `Student ${i + 41}`,
+                gender: i % 2 === 0 ? 'Male' : 'Female'
+            })),
+            stats: {
+                maleCount: 8,
+                femaleCount: 7,
+                otherCount: 0,
+                total: 15
+            }
+        }
+    ];
+
+    res.render('rooms-register-range', {
+        title: 'ROOM REGISTER RANGE',
+        subtitle: 'NMEA TENDER SCHOLAR 26',
+        examCenter: 'PPM HSS KOTTUKKARA',
+        examDate: new Date().toLocaleDateString('en-IN'),
+        rooms: testRooms,
+        isPreview: true,
+        autoPrint: false,
+        showStats: true
+    });
+});
+
 app.get('/update', (req, res) => {
     res.send('Welcome to the Student Registration API, added invigilator login feature');
 });
@@ -220,4 +282,5 @@ app.listen(PORT, () => {
     console.log(`   - Hall ticket: http://localhost:${PORT}/test-hallticket`);
     console.log(`   - Exam slips: http://localhost:${PORT}/test-exam-slips`);
     console.log(`   - Simple slips: http://localhost:${PORT}/test-simple-slips`);
+    console.log(`   - Simple slips: http://localhost:${PORT}/test-room-register-range`);
 });

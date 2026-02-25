@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Register Range</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: #fff;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .page-container {
+            width: 100%;
+            max-width: 277mm;
+            margin: 0 auto;
+            padding: 5mm;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Rooms Grid - Two columns */
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8mm;
+            margin-top: 2mm;
+            flex: 1;
+        }
+        
+        /* Individual Room Card - Larger size */
+        .room-card {
+            border: 3px solid #000;
+            padding: 8mm;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            min-height: 160mm;
+        }
+        
+        .room-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5mm;
+            margin-bottom: 8mm;
+        }
+        
+        .room-number {
+            font-size: 36pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        
+        .room-label {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-top: 3mm;
+            text-transform: uppercase;
+        }
+        
+        /* Registration Range Section - Centered vertically */
+        .range-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 15mm 0;
+        }
+        
+        .range-box {
+            width: 100%;
+            padding: 10mm 5mm;
+            border: 3px solid #000;
+            text-align: center;
+            background: #fff;
+        }
+        
+        .range-label {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 8mm;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3mm;
+            display: inline-block;
+        }
+        
+        .range-value {
+            font-size: 32pt;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        .to-text {
+            font-size: 24pt;
+            font-weight: bold;
+            margin: 5mm 0;
+            text-transform: uppercase;
+        }
+        
+        /* Empty room placeholder */
+        .room-card.empty {
+            border: 3px solid #aaa;
+            background: #f5f5f5;
+            opacity: 0.7;
+        }
+        
+        .room-card.empty .room-number {
+            color: #666;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 5mm;
+            text-align: center;
+            font-size: 10pt;
+            border-top: 1px solid #000;
+            padding-top: 3mm;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .room-card {
+                border: 3px solid #000;
+                break-inside: avoid;
+                box-shadow: none;
+            }
+            
+            .room-card.empty {
+                border: 3px solid #666;
+                background: #f0f0f0;
+            }
+            
+            .range-box {
+                border: 3px solid #000;
+                background: #fff;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        /* Action buttons */
+        .action-buttons {
+            text-align: center;
+            margin: 8mm 0;
+            padding: 5mm;
+            background: #f0f0f0;
+            border: 1px solid #000;
+        }
+        
+        .print-btn {
+            background: #000;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 14pt;
+            font-weight: bold;
+            border: 2px solid #000;
+        }
+        
+        .print-btn:hover {
+            background: #333;
+        }
+        
+        .back-btn {
+            background: #fff;
+            color: #000;
+            text-decoration: none;
+            padding: 10px 25px;
+            border: 2px solid #000;
+            font-size: 14pt;
+            display: inline-block;
+            font-weight: bold;
+        }
+        
+        .back-btn:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <%
+        const safeRooms = typeof rooms !== 'undefined' ? rooms : [];
+        const safeIsPreview = typeof isPreview !== 'undefined' ? isPreview : false;
+        const safeAutoPrint = typeof autoPrint !== 'undefined' ? autoPrint : false;
+        
+        // Function to format registration range
+        function formatRegRange(students) {
+            if (!students || students.length === 0) {
+                return { first: '---', last: '---', count: 0 };
+            }
+            
+            // Sort students by registration code
+            const sorted = [...students].sort((a, b) => {
+                const regA = a.registrationCode || '';
+                const regB = b.registrationCode || '';
+                return regA.localeCompare(regB);
+            });
+            
+            return {
+                first: sorted[0].registrationCode || '---',
+                last: sorted[sorted.length - 1].registrationCode || '---',
+                count: sorted.length
+            };
+        }
+        
+        // Group rooms into pairs for two-column layout
+        const roomPairs = [];
+        for (let i = 0; i < safeRooms.length; i += 2) {
+            roomPairs.push({
+                left: safeRooms[i],
+                right: safeRooms[i + 1] || null
+            });
+        }
+    %>
+    
+    <div class="page-container">
+        <!-- Rooms Grid -->
+        <% roomPairs.forEach((pair, pageIndex) => { %>
+            <% if (pageIndex > 0) { %>
+                <div style="page-break-before: always; margin-top: 5mm;"></div>
+            <% } %>
+            
+            <div class="rooms-grid">
+                <!-- Left Room -->
+                <% if (pair.left) { 
+                    const leftRange = formatRegRange(pair.left.students);
+                %>
+                <div class="room-card">
+                    <div class="room-header">
+                        <div class="room-number">ROOM <%= pair.left.roomNo %></div>
+                        <!-- <div class="room-label"><%= pair.left.invigilatorName ? 'INVIGILATOR: ' + pair.left.invigilatorName : '&nbsp;' %></div> -->
+                    </div>
+                    
+                    <div class="range-container">
+                        <div class="range-box">
+                            <div class="range-label">REGISTER NUMBERS</div>
+                            <div class="range-value"><%= leftRange.first %></div>
+                            <div class="to-text">TO</div>
+                            <div class="range-value"><%= leftRange.last %></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #000; padding-top: 3mm; margin-top: auto;">
+                        Total: <%= leftRange.count %> Students
+                    </div>
+                </div>
+                <% } else { %>
+                <!-- Empty placeholder for missing room -->
+                <div class="room-card empty">
+                    <div class="room-header">
+                        <div class="room-number">ROOM ---</div>
+                        <div class="room-label">&nbsp;</div>
+                    </div>
+                    
+                    <div class="range-container">
+                        <div class="range-box">
+                            <div class="range-label">REGISTER NUMBERS</div>
+                            <div class="range-value">---</div>
+                            <div class="to-text">TO</div>
+                            <div class="range-value">---</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #666; padding-top: 3mm; margin-top: auto; color: #666;">
+                        Total: 0 Students
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Right Room -->
+                <% if (pair.right) { 
+                    const rightRange = formatRegRange(pair.right.students);
+                %>
+                <div class="room-card">
+                    <div class="room-header">
+                        <div class="room-number">ROOM <%= pair.right.roomNo %></div>
+                        <div class="room-label"><%= pair.right.invigilatorName ? 'INVIGILATOR: ' + pair.right.invigilatorName : '&nbsp;' %></div>
+                    </div>
+                    
+                    <div class="range-container">
+                        <div class="range-box">
+                            <div class="range-label">REGISTER NUMBERS</div>
+                            <div class="range-value"><%= rightRange.first %></div>
+                            <div class="to-text">TO</div>
+                            <div class="range-value"><%= rightRange.last %></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #000; padding-top: 3mm; margin-top: auto;">
+                        Total: <%= rightRange.count %> Students
+                    </div>
+                </div>
+                <% } else if (pair.left) { %>
+                <!-- If no right room but left exists, show empty placeholder -->
+                <div class="room-card empty">
+                    <div class="room-header">
+                        <div class="room-number">ROOM ---</div>
+                        <div class="room-label">&nbsp;</div>
+                    </div>
+                    
+                    <div class="range-container">
+                        <div class="range-box">
+                            <div class="range-label">REGISTER NUMBERS</div>
+                            <div class="range-value">---</div>
+                            <div class="to-text">TO</div>
+                            <div class="range-value">---</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #666; padding-top: 3mm; margin-top: auto; color: #666;">
+                        Total: 0 Students
+                    </div>
+                </div>
+                <% } %>
+            </div>
+        <% }) %>
+
+        <!-- Footer -->
+        <!-- <div class="footer">
+            Generated on: <%= new Date().toLocaleString('en-IN') %>
+        </div> -->
+    </div>
+
+    <!-- Action Buttons (only for preview) -->
+    <% if (safeIsPreview) { %>
+    <div class="action-buttons no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ PRINT</button>
+        <a href="javascript:history.back()" class="back-btn">BACK</a>
+    </div>
+    <% } %>
+
+    <script>
+        <% if (safeAutoPrint) { %>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+        <% } %>
+        
+        // Ctrl+P for print
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

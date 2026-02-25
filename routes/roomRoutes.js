@@ -3,6 +3,7 @@ const router = express.Router();
 const Student = require('../models/Student');
 const InvigilatorDuty = require('../models/InvigilatorDuty');
 const auth = require('../middleware/auth');
+const { generateRoomRegisterRange } = require('../controllers/examInvigilatorController');
 
 // @desc    Get all rooms with their status
 // @route   GET /api/rooms/status
@@ -127,5 +128,9 @@ router.get('/available-for-duty', auth(['admin', 'superadmin']), async (req, res
     });
   }
 });
+
+// @desc    Generate room register range PDF
+// @route   GET /api/rooms/register-range/pdf
+router.get('/register-range/pdf', generateRoomRegisterRange);
 
 module.exports = router;
