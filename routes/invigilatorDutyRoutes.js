@@ -17,41 +17,41 @@ const auth = require('../middleware/auth');
 //     }
 // });
 
-router.get('/by-date/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
-    try {
-        await invigilatorDutyController.getDutiesByDate(req, res);
-    } catch (error) {
-        console.error('Error in get duties by date:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch duties by date'
-        });
-    }
-});
+// router.get('/by-date/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
+//     try {
+//         await invigilatorDutyController.getDutiesByDate(req, res);
+//     } catch (error) {
+//         console.error('Error in get duties by date:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Failed to fetch duties by date'
+//         });
+//     }
+// });
 
-router.get('/batch/:batchId', auth(['admin', 'superadmin']), async (req, res) => {
-    try {
-        await invigilatorDutyController.getDutiesByBatch(req, res);
-    } catch (error) {
-        console.error('Error in get duties by batch:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch duties by batch'
-        });
-    }
-});
+// router.get('/batch/:batchId', auth(['admin', 'superadmin']), async (req, res) => {
+//     try {
+//         await invigilatorDutyController.getDutiesByBatch(req, res);
+//     } catch (error) {
+//         console.error('Error in get duties by batch:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Failed to fetch duties by batch'
+//         });
+//     }
+// });
 
-router.get('/attendance-sheet/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
-    try {
-        await invigilatorDutyController.getAttendanceSheetData(req, res);
-    } catch (error) {
-        console.error('Error in get attendance sheet:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch attendance sheet data'
-        });
-    }
-});
+// router.get('/attendance-sheet/:examDate', auth(['admin', 'superadmin']), async (req, res) => {
+//     try {
+//         await invigilatorDutyController.getAttendanceSheetData(req, res);
+//     } catch (error) {
+//         console.error('Error in get attendance sheet:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Failed to fetch attendance sheet data'
+//         });
+//     }
+// });
 
 // router.put('/:id/attendance', auth(['admin', 'superadmin']), async (req, res) => {
 //     try {

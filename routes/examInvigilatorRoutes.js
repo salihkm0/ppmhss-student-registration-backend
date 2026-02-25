@@ -46,29 +46,29 @@ const auth = require('../middleware/auth');
 // });
 
 // CRUD routes
-router.get('/', auth(['admin', 'superadmin']), async (req, res) => {
-    try {
-        await invigilatorController.getAllInvigilators(req, res);
-    } catch (error) {
-        console.error('Error in GET /:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch invigilators'
-        });
-    }
-});
+// router.get('/', auth(['admin', 'superadmin']), async (req, res) => {
+//     try {
+//         await invigilatorController.getAllInvigilators(req, res);
+//     } catch (error) {
+//         console.error('Error in GET /:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Failed to fetch invigilators'
+//         });
+//     }
+// });
 
-router.get('/:id', auth(['admin', 'superadmin']), async (req, res) => {
-    try {
-        await invigilatorController.getInvigilatorById(req, res);
-    } catch (error) {
-        console.error('Error in GET /:id:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch invigilator'
-        });
-    }
-});
+// router.get('/:id', auth(['admin', 'superadmin']), async (req, res) => {
+//     try {
+//         await invigilatorController.getInvigilatorById(req, res);
+//     } catch (error) {
+//         console.error('Error in GET /:id:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Failed to fetch invigilator'
+//         });
+//     }
+// });
 
 // router.post('/', auth(['admin', 'superadmin']), async (req, res) => {
 //     try {
