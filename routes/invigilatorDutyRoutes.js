@@ -28,7 +28,7 @@ router.get('/attendance/:date/pdf', auth(["admin", "superadmin"]), generateAtten
 router.delete('/batch/:batchId', auth(["admin", "superadmin"]), deleteBatchDuties);
 
 // Bulk operations
-router.post('/duties/bulk', auth(["admin", "superadmin"]), bulkCreateDuties);
+router.post('/bulk', auth(["admin", "superadmin"]), bulkCreateDuties);
 
 // CRUD operations
 router.route('/:id')
