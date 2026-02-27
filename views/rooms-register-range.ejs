@@ -33,13 +33,14 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            /* border: 1px solid #000; */
         }
         
         /* Rooms Grid - Two columns */
         .rooms-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8mm;
+            gap: 3mm;
             margin-top: 2mm;
             flex: 1;
         }
@@ -47,7 +48,7 @@
         /* Individual Room Card - Larger size */
         .room-card {
             border: 3px solid #000;
-            padding: 8mm;
+            padding: 3mm 8mm;
             background: #fff;
             display: flex;
             flex-direction: column;
@@ -56,21 +57,28 @@
         
         .room-header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5mm;
-            margin-bottom: 8mm;
+            /* border-bottom: 2px solid #000; */
+            /* padding-bottom: 5mm; */
+            /* margin-bottom: 8mm; */
+        }
+        .room-number-label{
+            font-size: 26pt;
+            font-weight: bold;
+            letter-spacing: 2px;
         }
         
         .room-number {
-            font-size: 36pt;
+            font-size: 320px;
             font-weight: bold;
-            letter-spacing: 2px;
+            /* letter-spacing: 2px; */
+            margin:0 ;
+            padding: 0;
         }
         
         .room-label {
             font-size: 20pt;
             font-weight: bold;
-            margin-top: 3mm;
+            /* margin-top: 3mm; */
             text-transform: uppercase;
         }
         
@@ -81,12 +89,12 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin: 15mm 0;
+            margin: 2mm 0;
         }
         
         .range-box {
             width: 100%;
-            padding: 10mm 5mm;
+            padding: 2mm 5mm;
             border: 3px solid #000;
             text-align: center;
             background: #fff;
@@ -95,7 +103,7 @@
         .range-label {
             font-size: 18pt;
             font-weight: bold;
-            margin-bottom: 8mm;
+            margin-bottom: 3mm;
             text-transform: uppercase;
             border-bottom: 1px solid #000;
             padding-bottom: 3mm;
@@ -112,7 +120,7 @@
         .to-text {
             font-size: 24pt;
             font-weight: bold;
-            margin: 5mm 0;
+            margin: 2mm 0;
             text-transform: uppercase;
         }
         
@@ -255,7 +263,8 @@
                 %>
                 <div class="room-card">
                     <div class="room-header">
-                        <div class="room-number">ROOM <%= pair.left.roomNo %></div>
+                        <div class="room-number-label">ROOM</div>
+                        <div class="room-number"><%= pair.left.roomNo %></div>
                     </div>
                     
                     <div class="range-container">
@@ -284,7 +293,8 @@
                 %>
                 <div class="room-card">
                     <div class="room-header">
-                        <div class="room-number">ROOM <%= pair.right.roomNo %></div>
+                        <div class="room-number-label">ROOM</div>
+                        <div class="room-number"><%= pair.right.roomNo %></div>
                     </div>
                     
                     <div class="range-container">
