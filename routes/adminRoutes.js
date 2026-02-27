@@ -418,4 +418,187 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
   }
 });
 
+// Generate overall summary PDF (all students)
+router.get("/overall-summary/pdf", async (req, res) => {
+  try {
+    const Student = require("../models/Student");
+    
+    // Get ALL students (excluding deleted)
+    const allStudents = await Student.find({
+      isDeleted: false,
+    })
+      .select("medium gender registrationCode name seatNo roomNo");
+
+    if (!allStudents || allStudents.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No students found",
+      });
+    }
+
+    // Calculate overall statistics
+    let englishCount = 0;
+    let malayalamCount = 0;
+    let englishMale = 0;
+    let englishFemale = 0;
+    let englishOther = 0;
+    let malayalamMale = 0;
+    let malayalamFemale = 0;
+    let malayalamOther = 0;
+    
+    // For QP type calculation (alternating by student order)
+    let englishTypeA = 0;
+    let englishTypeB = 0;
+    let malayalamTypeA = 0;
+    let malayalamTypeB = 0;
+    
+    // Room wise distribution with QP types
+    const roomDistribution = {};
+
+    allStudents.forEach((student, index) => {
+      const qpType = (index % 2 === 0) ? 'A' : 'B';
+      
+      // Track room distribution
+      if (student.roomNo) {
+        if (!roomDistribution[student.roomNo]) {
+          roomDistribution[student.roomNo] = {
+            total: 0,
+            english: 0,
+            malayalam: 0,
+            male: 0,
+            female: 0,
+            other: 0,
+            typeA: 0,
+            typeB: 0,
+            englishTypeA: 0,
+            englishTypeB: 0,
+            malayalamTypeA: 0,
+            malayalamTypeB: 0
+          };
+        }
+        roomDistribution[student.roomNo].total++;
+        
+        // Track QP Type per room
+        if (qpType === 'A') {
+          roomDistribution[student.roomNo].typeA++;
+        } else {
+          roomDistribution[student.roomNo].typeB++;
+        }
+      }
+      
+      // English medium stats
+      if (student.medium === 'English') {
+        englishCount++;
+        
+        if (qpType === 'A') {
+          englishTypeA++;
+          if (student.roomNo) roomDistribution[student.roomNo].englishTypeA++;
+        } else {
+          englishTypeB++;
+          if (student.roomNo) roomDistribution[student.roomNo].englishTypeB++;
+        }
+        
+        if (student.gender === 'Male') {
+          englishMale++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].english++;
+            roomDistribution[student.roomNo].male++;
+          }
+        } else if (student.gender === 'Female') {
+          englishFemale++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].english++;
+            roomDistribution[student.roomNo].female++;
+          }
+        } else if (student.gender === 'Other') {
+          englishOther++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].english++;
+            roomDistribution[student.roomNo].other++;
+          }
+        }
+      } 
+      // Malayalam medium stats
+      else if (student.medium === 'Malayalam') {
+        malayalamCount++;
+        
+        if (qpType === 'A') {
+          malayalamTypeA++;
+          if (student.roomNo) roomDistribution[student.roomNo].malayalamTypeA++;
+        } else {
+          malayalamTypeB++;
+          if (student.roomNo) roomDistribution[student.roomNo].malayalamTypeB++;
+        }
+        
+        if (student.gender === 'Male') {
+          malayalamMale++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].malayalam++;
+            roomDistribution[student.roomNo].male++;
+          }
+        } else if (student.gender === 'Female') {
+          malayalamFemale++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].malayalam++;
+            roomDistribution[student.roomNo].female++;
+          }
+        } else if (student.gender === 'Other') {
+          malayalamOther++;
+          if (student.roomNo) {
+            roomDistribution[student.roomNo].malayalam++;
+            roomDistribution[student.roomNo].other++;
+          }
+        }
+      }
+    });
+
+    // Convert room distribution to array for easier template handling
+    const rooms = Object.keys(roomDistribution).sort((a, b) => parseInt(a) - parseInt(b)).map(roomNo => ({
+      roomNo,
+      ...roomDistribution[roomNo]
+    }));
+
+    const templateData = {
+      generationDate: new Date().toLocaleDateString("en-IN"),
+      generationTime: new Date().toLocaleTimeString("en-IN"),
+      totalStudents: allStudents.length,
+      isPreview: req.query.preview !== "false",
+      autoPrint: req.query.print === "true",
+      // Overall statistics
+      summary: {
+        englishCount,
+        malayalamCount,
+        englishMale,
+        englishFemale,
+        englishOther,
+        malayalamMale,
+        malayalamFemale,
+        malayalamOther,
+        englishTypeA,
+        englishTypeB,
+        malayalamTypeA,
+        malayalamTypeB,
+        totalTypeA: englishTypeA + malayalamTypeA,
+        totalTypeB: englishTypeB + malayalamTypeB,
+        totalEnglishStudents: englishMale + englishFemale + englishOther,
+        totalMalayalamStudents: malayalamMale + malayalamFemale + malayalamOther,
+        totalMale: englishMale + malayalamMale,
+        totalFemale: englishFemale + malayalamFemale,
+        totalOther: englishOther + malayalamOther
+      },
+      rooms: rooms,
+      totalRooms: rooms.length
+    };
+
+    // Render the separate overall summary template
+    res.render("overall-summary", templateData);
+  } catch (error) {
+    console.error("Error generating overall summary:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate overall summary: " + error.message,
+    });
+  }
+});
+
 module.exports = router;
