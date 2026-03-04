@@ -819,6 +819,8 @@ const exportStudents = async (req, res) => {
             'Local Body Name',
             'Village',
             'Registration Date',
+            'Mark',
+            'Total Marks',
             'Is Deleted'
         ].join(',');
 
@@ -846,6 +848,8 @@ const exportStudents = async (req, res) => {
                     student.address.localBodyName,
                     student.address.village,
                     new Date(student.createdAt).toLocaleDateString('en-IN'),
+                    student.examMarks || '',
+                    student.totalMarks || '',
                     student.isDeleted ? 'Yes' : 'No'
                 ]
                     .map((field) => {
