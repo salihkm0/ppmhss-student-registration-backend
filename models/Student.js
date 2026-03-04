@@ -863,11 +863,11 @@ const studentSchema = new mongoose.Schema({
     },
     totalMarks: {
         type: Number,
-        default: 100
+        default: 50
     },
     resultStatus: {
         type: String,
-        enum: ['Pending', 'Passed', 'Failed'],
+        enum: ['Pending', 'Passed', 'Failed','Absent' , "Status Not Available"],
         default: 'Pending'
     },
     rank: {
@@ -880,6 +880,10 @@ const studentSchema = new mongoose.Schema({
         default: ''
     },
     iasCoaching: {
+        type: Boolean,
+        default: false
+    },
+    isSelected : {
         type: Boolean,
         default: false
     },
@@ -1370,9 +1374,11 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
             
             // Top 100 get IAS coaching (based on rank, not position)
             const iasCoaching = currentRank <= 100;
+
+            const isSelected = currentRank <= 500;
             
             // Update result status
-            const resultStatus = student.examMarks >= 40 ? 'Passed' : 'Failed';
+            const resultStatus = student.examMarks >= 0 ? 'Passed' : 'Status Not Available';
             
             console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Rank: ${currentRank}, Scholarship: ${scholarship}`);
             
@@ -1385,6 +1391,7 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
                             rank: currentRank,
                             scholarship: scholarship,
                             iasCoaching: iasCoaching,
+                            isSelected : isSelected,
                             resultStatus: resultStatus,
                             status: 'Result Published',
                             markEntryStatus: 'final'
