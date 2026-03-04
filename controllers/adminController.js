@@ -1370,10 +1370,11 @@ const adminEditMarks = async (req, res) => {
             adminId: req.user
         });
 
-        if (!marks || marks < 0 || marks > 100) {
+        // Fix: Allow 0 as valid value
+        if (marks === undefined || marks === null || marks < 0 || marks > 50) {
             return res.status(400).json({
                 success: false,
-                error: 'Please enter valid marks between 0 and 100',
+                error: 'Please enter valid marks between 0 and 50',
             });
         }
 
@@ -1409,19 +1410,20 @@ const adminEditMarks = async (req, res) => {
         let action = 'entered';
         if (student.examMarks > 0) {
             action = 'updated';
+        } else if (student.examMarks === 0 && marks > 0) {
+            action = 'updated'; // Changed from absent to having marks
         }
 
         // Store previous marks for history
         const previousMarks = student.examMarks;
 
-        // Update marks
+        // Update marks - removed resultStatus
         const updateResult = await Student.updateOne(
             { _id: studentId },
             {
                 $set: {
                     examMarks: marks,
                     markEntryStatus: student.markEntryStatus === 'final' ? 'final' : 'submitted',
-                    resultStatus: marks >= 40 ? 'Passed' : 'Failed',
                     lastEditedAt: new Date(),
                     currentEditor: admin._id,
                     currentEditorModel: 'Admin',
@@ -1446,16 +1448,16 @@ const adminEditMarks = async (req, res) => {
             admin.username,
             action,
             previousMarks,
-            'Marks edited by admin'
+            marks === 0 ? 'Student marked as absent' : 'Marks edited by admin'
         );
 
         // Get updated student data
         const finalStudent = await Student.findById(studentId)
-            .select('name registrationCode roomNo seatNo examMarks resultStatus markEntryStatus');
+            .select('name registrationCode roomNo seatNo examMarks markEntryStatus');
 
         res.json({
             success: true,
-            message: 'Marks updated successfully',
+            message: marks === 0 ? 'Student marked as absent' : 'Marks updated successfully',
             data: {
                 student: {
                     name: finalStudent.name,
@@ -1463,7 +1465,6 @@ const adminEditMarks = async (req, res) => {
                     roomNo: finalStudent.roomNo,
                     seatNo: finalStudent.seatNo,
                     examMarks: finalStudent.examMarks,
-                    resultStatus: finalStudent.resultStatus,
                     markEntryStatus: finalStudent.markEntryStatus,
                 },
                 editedBy: {
@@ -1684,14 +1685,13 @@ const bulkUpdateMarks = async (req, res) => {
 
                 const previousMarks = student.examMarks;
 
-                // Update marks
+                // Update marks - removed resultStatus
                 await Student.updateOne(
                     { _id: studentId },
                     {
                         $set: {
                             examMarks: marks,
                             markEntryStatus: student.markEntryStatus === 'final' ? 'final' : 'submitted',
-                            resultStatus: marks >= 40 ? 'Passed' : 'Failed',
                             lastEditedAt: new Date(),
                             currentEditor: admin._id,
                             currentEditorModel: 'Admin',
