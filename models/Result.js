@@ -94,7 +94,7 @@ const resultSchema = new mongoose.Schema({
     },
     totalMarks: {
         type: Number,
-        default: 100
+        default: 50
     },
     percentage: {
         type: Number,
