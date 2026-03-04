@@ -143,6 +143,119 @@ router.get(
   adminController.getTopPerformers,
 );
 
+// MARK MANAGEMENT ROUTES (Admin edit before rank generation)
+// These must come before parameterized routes like /students/:id
+
+// Get students by mark status (pending/draft/submitted/final)
+router.get(
+  "/marks/students",
+  auth(["admin", "superadmin"]),
+  adminController.getStudentsByMarkStatus,
+);
+
+// Admin edit marks for a student
+router.put(
+  "/marks/students/:studentId",
+  auth(["admin", "superadmin"]),
+  [
+    body('marks').isInt({ min: 0, max: 100 }).withMessage('Marks must be between 0 and 100')
+  ],
+  adminController.adminEditMarks,
+);
+
+// Get mark history for a student
+router.get(
+  "/marks/students/:studentId/history",
+  auth(["admin", "superadmin"]),
+  adminController.getStudentMarkHistory,
+);
+
+// Finalize marks for a student (marks become final before rank generation)
+router.post(
+  "/marks/students/:studentId/finalize",
+  auth(["admin", "superadmin"]),
+  adminController.finalizeMarks,
+);
+
+// Bulk mark operations
+router.post(
+  "/marks/bulk-update",
+  auth(["admin", "superadmin"]),
+  adminController.bulkUpdateMarks,
+);
+
+// Get mark entry summary by room
+router.get(
+  "/marks/room-summary",
+  auth(["admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const summary = await Student.aggregate([
+        { $match: { isDeleted: false } },
+        { $group: {
+          _id: { roomNo: '$roomNo', status: '$markEntryStatus' },
+          count: { $sum: 1 }
+        }},
+        { $group: {
+          _id: '$_id.roomNo',
+          statuses: {
+            $push: {
+              status: '$_id.status',
+              count: '$count'
+            }
+          },
+          total: { $sum: '$count' }
+        }},
+        { $sort: { _id: 1 } }
+      ]);
+
+      res.json({
+        success: true,
+        data: summary
+      });
+    } catch (error) {
+      console.error('Error getting mark summary:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get mark summary'
+      });
+    }
+  }
+);
+
+// Get rooms with pending/draft/submitted marks
+router.get(
+  "/marks/pending-rooms",
+  auth(["admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const rooms = await Student.aggregate([
+        { $match: { isDeleted: false } },
+        { $group: {
+          _id: '$roomNo',
+          totalStudents: { $sum: 1 },
+          pending: { $sum: { $cond: [{ $eq: ['$markEntryStatus', 'pending'] }, 1, 0] } },
+          draft: { $sum: { $cond: [{ $eq: ['$markEntryStatus', 'draft'] }, 1, 0] } },
+          submitted: { $sum: { $cond: [{ $eq: ['$markEntryStatus', 'submitted'] }, 1, 0] } },
+          final: { $sum: { $cond: [{ $eq: ['$markEntryStatus', 'final'] }, 1, 0] } }
+        }},
+        { $sort: { _id: 1 } }
+      ]);
+
+      res.json({
+        success: true,
+        data: rooms
+      });
+    } catch (error) {
+      console.error('Error getting pending rooms:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get pending rooms'
+      });
+    }
+  }
+);
+
 router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
   try {
     const studentRooms = await Student.aggregate([
@@ -212,7 +325,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo aadhaarNo medium gender") // Added gender to select fields
+      .select("name registrationCode seatNo aadhaarNo medium gender")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -236,7 +349,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
     let otherCount = 0;
 
     students.forEach((student, index) => {
-      const qpType = (index % 2 === 0) ? 'A' : 'B'; // Alternate A/B based on seat order
+      const qpType = (index % 2 === 0) ? 'A' : 'B';
       
       // Count gender
       if (student.gender === 'Male') {
@@ -375,7 +488,7 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo studyingClass medium") // Include medium
+      .select("name registrationCode seatNo studyingClass medium")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -388,12 +501,11 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
     // Add qpType to each student based on seat number (odd = A, even = B)
     const studentsWithQPType = students.map(student => {
       const studentObj = student.toObject();
-      // Determine QP Type: odd seat numbers get 'A', even get 'B'
       studentObj.qpType = (student.seatNo % 2 === 1) ? 'A' : 'B';
       return studentObj;
     });
 
-    const studentsPerPage = 20; // Changed from 21 to 20
+    const studentsPerPage = 20;
     const studentPages = [];
     for (let i = 0; i < studentsWithQPType.length; i += studentsPerPage) {
       studentPages.push(studentsWithQPType.slice(i, i + studentsPerPage));
