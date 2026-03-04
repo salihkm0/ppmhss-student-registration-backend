@@ -21,6 +21,7 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:5173', 
+        'http://localhost:5174', 
         'https://ppmhss-student-registration.vercel.app',
         'https://nmea.oxiumev.com', 
         'http://nmea.ppmhsskottukkara.com',
