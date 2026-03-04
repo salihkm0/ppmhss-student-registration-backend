@@ -158,7 +158,10 @@ router.put(
   "/marks/students/:studentId",
   auth(["admin", "superadmin"]),
   [
-    body('marks').isInt({ min: 0, max: 100 }).withMessage('Marks must be between 0 and 100')
+    body('marks')
+      .isInt({ min: 0, max: 50 })
+      .withMessage('Marks must be between 0 and 50')
+      .toInt() // Ensure it's converted to integer
   ],
   adminController.adminEditMarks,
 );

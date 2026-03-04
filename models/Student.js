@@ -867,7 +867,7 @@ const studentSchema = new mongoose.Schema({
     },
     resultStatus: {
         type: String,
-        enum: ['Pending', 'Passed', 'Failed','Absent' , "Status Not Available"],
+        enum: ['Pending', 'Passed', 'Failed','Absent' , "Status Not Available", "Rank Published"],
         default: 'Pending'
     },
     rank: {
@@ -1337,10 +1337,10 @@ studentSchema.statics.getRoomDistribution = async function() {
 // Static method to update ranks and scholarships with name-based tie-breaking
 studentSchema.statics.updateRanksAndScholarships = async function() {
     try {
-        // Get all students with marks, sorted by marks (desc) and name (asc)
-        const students = await this.find({ examMarks: { $gt: 0 }, isDeleted: false, markEntryStatus: { $in: ['submitted', 'final'] } })
+        // Get all students with marks (including 0), sorted by marks (desc) and name (asc)
+        const students = await this.find({ examMarks: { $gte: 0 }, isDeleted: false, markEntryStatus: { $in: ['submitted', 'final'] } })
             .sort({ examMarks: -1, name: 1 }) // Sort by marks descending, then name ascending
-            .select('_id examMarks rank scholarship iasCoaching resultStatus status roomNo seatNo name');
+            .select('_id examMarks rank scholarship iasCoaching resultStatus status roomNo seatNo name isSelected');
         
         let rank = 1;
         let position = 1; // Track actual position for scholarships
@@ -1375,12 +1375,13 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
             // Top 100 get IAS coaching (based on rank, not position)
             const iasCoaching = currentRank <= 100;
 
+            // Top 500 get selected
             const isSelected = currentRank <= 500;
             
-            // Update result status
-            const resultStatus = student.examMarks >= 0 ? 'Passed' : 'Status Not Available';
+            // Set resultStatus to 'Rank Published' or similar
+            const resultStatus = 'Rank Published';
             
-            console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Rank: ${currentRank}, Scholarship: ${scholarship}`);
+            console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Rank: ${currentRank}, Scholarship: ${scholarship}, IAS: ${iasCoaching}, Selected: ${isSelected}`);
             
             // Update document WITHOUT triggering pre-save hooks
             updatePromises.push(
@@ -1391,7 +1392,7 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
                             rank: currentRank,
                             scholarship: scholarship,
                             iasCoaching: iasCoaching,
-                            isSelected : isSelected,
+                            isSelected: isSelected,
                             resultStatus: resultStatus,
                             status: 'Result Published',
                             markEntryStatus: 'final'

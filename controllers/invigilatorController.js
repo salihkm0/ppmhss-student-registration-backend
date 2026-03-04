@@ -882,7 +882,8 @@ exports.enterMarks = async (req, res) => {
             invigilatorId: req.user.id
         });
 
-        if (!marks || marks < 0 || marks > 100) {
+        // Allow 0 as valid mark for absent students
+        if (marks === undefined || marks === null || marks < 0 || marks > 100) {
             return res.status(400).json({
                 success: false,
                 error: 'Please enter valid marks between 0 and 100',
@@ -958,21 +959,20 @@ exports.enterMarks = async (req, res) => {
 
         // Determine action for history
         let action = 'entered';
-        if (student.examMarks > 0) {
+        if (student.examMarks > 0 || student.examMarks === 0) {
             action = 'updated';
         }
 
         // Store previous marks for history
         const previousMarks = student.examMarks;
 
-        // Update student marks
+        // Update student marks - removed resultStatus
         const updateResult = await Student.updateOne(
             { _id: studentId },
             {
                 $set: {
                     examMarks: marks,
                     markEntryStatus: 'draft',
-                    resultStatus: marks >= 40 ? 'Passed' : 'Failed',
                     lastEditedAt: new Date(),
                     currentEditor: invigilator._id,
                     currentEditorModel: 'Invigilator',
@@ -999,16 +999,16 @@ exports.enterMarks = async (req, res) => {
             invigilator.name,
             action,
             previousMarks,
-            'Marks saved as draft'
+            marks === 0 ? 'Student marked as absent' : 'Marks saved as draft'
         );
 
         // Get updated student info
         const finalStudent = await Student.findById(studentId)
-            .select('name registrationCode roomNo seatNo examMarks resultStatus markEntryStatus');
+            .select('name registrationCode roomNo seatNo examMarks markEntryStatus');
 
         res.json({
             success: true,
-            message: 'Marks saved as draft',
+            message: marks === 0 ? 'Student marked as absent' : 'Marks saved as draft',
             data: {
                 student: {
                     name: finalStudent.name,
@@ -1016,7 +1016,6 @@ exports.enterMarks = async (req, res) => {
                     roomNo: finalStudent.roomNo,
                     seatNo: finalStudent.seatNo,
                     examMarks: finalStudent.examMarks,
-                    resultStatus: finalStudent.resultStatus,
                     markEntryStatus: finalStudent.markEntryStatus,
                 },
                 enteredBy: {
@@ -1098,8 +1097,8 @@ exports.submitMarks = async (req, res) => {
             });
         }
 
-        // Check if marks are entered
-        if (!student.examMarks || student.examMarks === 0) {
+        // Check if marks are entered (allow 0 for absent)
+        if (student.examMarks === undefined || student.examMarks === null) {
             return res.status(400).json({
                 success: false,
                 error: 'Cannot submit without entering marks',
@@ -1208,10 +1207,10 @@ exports.submitRoomMarks = async (req, res) => {
             });
         }
 
-        // Check for students with no marks
+        // Check for students with no marks (undefined or null, not 0)
         const studentsWithNoMarks = await Student.find({
             roomNo: roomNo,
-            examMarks: 0
+            examMarks: { $exists: false }
         });
 
         if (studentsWithNoMarks.length > 0) {
