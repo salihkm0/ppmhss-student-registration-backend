@@ -695,7 +695,6 @@
 
 // module.exports = mongoose.model('Student', studentSchema);
 
-
 const mongoose = require('mongoose');
 
 const markHistorySchema = new mongoose.Schema({
@@ -1334,7 +1333,7 @@ studentSchema.statics.getRoomDistribution = async function() {
     }
 };
 
-// Static method to update ranks and scholarships with name-based tie-breaking
+// Static method to update ranks and scholarships with name-based tie-breaking for unique ranks
 studentSchema.statics.updateRanksAndScholarships = async function() {
     try {
         // Get all students with marks (including 0), sorted by marks (desc) and name (asc)
@@ -1344,23 +1343,26 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
         
         let rank = 1;
         let position = 1; // Track actual position for scholarships
-        let previousMarks = null;
-        let previousRank = 0;
+        
+        // Track ALL students in order for IAS eligibility
+        const allStudentsInOrder = [];
         
         const updatePromises = [];
         
         for (let i = 0; i < students.length; i++) {
             const student = students[i];
             
-            // Handle same marks getting same rank
-            let currentRank;
-            if (previousMarks === student.examMarks) {
-                currentRank = previousRank;
-            } else {
-                currentRank = rank;
-                previousRank = rank;
-                previousMarks = student.examMarks;
-            }
+            // UNIQUE RANK: Each student gets a unique rank based on their position
+            const currentRank = rank;
+            
+            // Track ALL students in order (for IAS eligibility)
+            allStudentsInOrder.push({
+                studentId: student._id,
+                marks: student.examMarks,
+                name: student.name,
+                rank: currentRank,
+                position: position
+            });
             
             // Assign scholarships based on position in sorted list (top 3 distinct positions)
             let scholarship = '';
@@ -1372,18 +1374,13 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
                 scholarship = 'Bronze';
             }
             
-            // Top 100 get IAS coaching (based on rank, not position)
-            const iasCoaching = currentRank <= 100;
-
-            // Top 500 get selected
-            const isSelected = currentRank <= 500;
+            // Student is selected if marks are 15 or above
+            const isSelected = student.examMarks >= 15;
             
-            // Set resultStatus to 'Rank Published' or similar
+            // Set resultStatus to 'Rank Published'
             const resultStatus = 'Rank Published';
             
-            console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Rank: ${currentRank}, Scholarship: ${scholarship}, IAS: ${iasCoaching}, Selected: ${isSelected}`);
-            
-            // Update document WITHOUT triggering pre-save hooks
+            // Temporarily set iasCoaching to false (will update after determining top 100)
             updatePromises.push(
                 this.findByIdAndUpdate(
                     student._id,
@@ -1391,7 +1388,7 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
                         $set: {
                             rank: currentRank,
                             scholarship: scholarship,
-                            iasCoaching: iasCoaching,
+                            iasCoaching: false, // Temporarily false
                             isSelected: isSelected,
                             resultStatus: resultStatus,
                             status: 'Result Published',
@@ -1402,16 +1399,100 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
                 )
             );
             
-            rank++;
-            position++; // Always increment position for next student
+            console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Unique Rank: ${currentRank}, Scholarship: ${scholarship}, IAS: Pending, Selected: ${isSelected}`);
+            
+            rank++; // Always increment rank for each student
+            position++; // Always increment position for each student
+        }
+        
+        // Wait for all initial updates to complete
+        await Promise.all(updatePromises);
+        
+        // Clear the array for the next step
+        updatePromises.length = 0;
+        
+        // FIXED: Filter students with marks >= 15 for IAS eligibility, but PRESERVE ORDER
+        const eligibleForIAS = allStudentsInOrder.filter(s => s.marks >= 15);
+        
+        console.log(`\n--- Students with 15+ marks (in original order) ---`);
+        eligibleForIAS.forEach((student, index) => {
+            console.log(`${index + 1}: ${student.name} - Marks: ${student.marks}, Rank: ${student.rank}, Position: ${student.position}`);
+        });
+        
+        // Take only the first 100 students for IAS coaching (these are the top 100 by position)
+        const top100ForIAS = eligibleForIAS.slice(0, 100);
+        const top100Ids = new Set(top100ForIAS.map(s => s.studentId.toString()));
+        
+        console.log(`\n--- IAS Coaching Eligibility (Top 100 with 15+ marks) ---`);
+        console.log(`Total students with 15+ marks: ${eligibleForIAS.length}`);
+        console.log(`Selected for IAS coaching: ${top100ForIAS.length}`);
+        console.log(`Cutoff marks: ${top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].marks : 0}`);
+        console.log(`Cutoff rank: ${top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].rank : 0}`);
+        
+        // Display the top 100 students with their ranks
+        top100ForIAS.forEach((student, index) => {
+            console.log(`IAS ${index + 1}: ${student.name} - Marks: ${student.marks}, Unique Rank: ${student.rank}, Position: ${student.position}`);
+        });
+        
+        // Check specifically for rank 100
+        const rank100Student = allStudentsInOrder.find(s => s.rank === 100);
+        if (rank100Student) {
+            const isRank100Eligible = rank100Student.marks >= 15;
+            const isRank100InTop100 = top100Ids.has(rank100Student.studentId.toString());
+            
+            console.log(`\n--- Rank 100 Student Status ---`);
+            console.log(`Name: ${rank100Student.name}`);
+            console.log(`Marks: ${rank100Student.marks} (${isRank100Eligible ? '≥15 ✓' : '<15 ✗'})`);
+            console.log(`In top 100 for IAS: ${isRank100InTop100 ? 'YES ✓' : 'NO ✗'}`);
+            
+            if (isRank100Eligible && !isRank100InTop100) {
+                console.log(`⚠️ WARNING: Rank 100 student has ${rank100Student.marks} marks but is NOT in top 100 for IAS!`);
+            }
+        }
+        
+        // Update IAS coaching status for all students
+        for (let i = 0; i < students.length; i++) {
+            const student = students[i];
+            
+            // Check if this student should get IAS coaching
+            let iasCoaching = false;
+            
+            // Only students with marks >= 15 can get IAS coaching
+            if (student.examMarks >= 15) {
+                // Check if this student is in the top 100 by position
+                iasCoaching = top100Ids.has(student._id.toString());
+            }
+            
+            updatePromises.push(
+                this.findByIdAndUpdate(
+                    student._id,
+                    {
+                        $set: {
+                            iasCoaching: iasCoaching
+                        }
+                    },
+                    { new: true }
+                )
+            );
         }
         
         await Promise.all(updatePromises);
         
+        // Final verification - check if rank 100 now has iasCoaching = true
+        const finalRank100Student = await this.findOne({ rank: 100, isDeleted: false });
+        
         return {
             success: true,
-            message: `Ranks and scholarships updated for ${students.length} students`,
-            updatedCount: students.length
+            message: `Unique ranks and scholarships updated for ${students.length} students`,
+            updatedCount: students.length,
+            iasDetails: {
+                totalEligible: eligibleForIAS.length,
+                selectedForIAS: top100ForIAS.length,
+                iasCoachingCutoffMarks: top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].marks : 0,
+                iasCoachingCutoffRank: top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].rank : 0,
+                rank100Included: top100ForIAS.some(s => s.rank === 100),
+                rank100FinalStatus: finalRank100Student ? finalRank100Student.iasCoaching : null
+            }
         };
     } catch (error) {
         console.error('Error updating ranks:', error);
@@ -1423,9 +1504,9 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
 studentSchema.statics.getTopPerformers = async function(limit = 10) {
     try {
         const topPerformers = await this.find({ examMarks: { $gt: 0 }, isDeleted: false })
-            .sort({ rank: 1 })
+            .sort({ rank: 1, name: 1 }) // Sort by rank, then name for consistency
             .limit(limit)
-            .select('name registrationCode examMarks totalMarks rank scholarship iasCoaching studyingClass schoolName roomNo seatNo markEntryStatus');
+            .select('name registrationCode examMarks totalMarks rank scholarship iasCoaching studyingClass schoolName roomNo seatNo markEntryStatus isSelected');
         
         return topPerformers;
     } catch (error) {
@@ -1433,7 +1514,6 @@ studentSchema.statics.getTopPerformers = async function(limit = 10) {
         throw error;
     }
 };
-
 // Static method to get available seats in each room
 studentSchema.statics.getAvailableSeats = async function() {
     try {

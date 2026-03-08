@@ -36,17 +36,21 @@ exports.getResultByCode = async (req, res) => {
             });
         }
 
+        // UPDATED: Calculate qualification based on marks >= 15
+        const isQualified = student.examMarks >= 15;
+
         // Create result from student data
         const resultData = {
             studentId: student._id,
             registrationCode: student.registrationCode,
             examMarks: student.examMarks || 0,
-            totalMarks: student.totalMarks || 100,
+            totalMarks: student.totalMarks || 50,
             percentage: student.examMarks ? (student.examMarks / student.totalMarks) * 100 : 0,
             rank: student.rank || 0,
-            isQualified: student.examMarks >= 40,
+            isQualified: isQualified,
             scholarshipType: student.scholarship || '',
             iasCoaching: student.iasCoaching || false,
+            isSelected: student.isSelected || false,
         };
 
         res.json({
@@ -89,7 +93,7 @@ exports.getResultsByPhone = async (req, res) => {
 
         // Find all students with this phone number
         const students = await Student.find({ phoneNo })
-            .select('name registrationCode applicationNo studyingClass examMarks rank scholarship iasCoaching resultStatus')
+            .select('name registrationCode applicationNo studyingClass examMarks rank scholarship iasCoaching resultStatus totalMarks')
             .sort({ createdAt: -1 });
 
         if (!students || students.length === 0) {
@@ -106,13 +110,16 @@ exports.getResultsByPhone = async (req, res) => {
             applicationNo: student.applicationNo,
             class: student.studyingClass,
             marks: student.examMarks || 'Not Available',
-            totalMarks: 100,
-            percentage: student.examMarks ? (student.examMarks / 100) * 100 : 0,
+            totalMarks: student.totalMarks || 50,
+            percentage: student.examMarks ? ((student.examMarks / (student.totalMarks || 50)) * 100).toFixed(2) : 0,
             rank: student.rank || 'Not Ranked',
             result: student.resultStatus,
             scholarship: student.scholarship || 'Not Eligible',
+            // UPDATED: Show IAS Coaching eligibility correctly
             iasCoaching: student.iasCoaching ? 'Eligible' : 'Not Eligible',
-            qualified: student.examMarks >= 40,
+            // UPDATED: Qualified if marks >= 15
+            qualified: student.examMarks >= 15,
+            isSelected: student.isSelected || false,
         }));
 
         res.json({
@@ -136,31 +143,53 @@ exports.getTopResults = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
 
-        // Get top students
-        const students = await Student.find({ examMarks: { $gt: 0 } })
-            .sort({ examMarks: -1 })
+        // Get top students - SORT BY examMarks DESC, THEN name ASC for consistent tie-breaking
+        const students = await Student.find({ examMarks: { $gt: 0 }, isDeleted: false })
+            .sort({ examMarks: -1, name: 1 }) // Add name sorting for tie-breaking
             .limit(limit)
-            .select('name registrationCode studyingClass schoolName examMarks rank scholarship iasCoaching');
+            .select('name registrationCode studyingClass schoolName examMarks totalMarks rank scholarship iasCoaching isSelected');
 
         // Format results
-        const results = students.map(student => ({
-            rank: student.rank || 'Not Ranked',
-            name: student.name,
-            registrationCode: student.registrationCode,
-            class: student.studyingClass,
-            school: student.schoolName,
-            marks: student.examMarks,
-            totalMarks: 100,
-            percentage: (student.examMarks / 100) * 100,
-            scholarship: student.scholarship || 'Not Eligible',
-            iasCoaching: student.iasCoaching ? 'Eligible' : 'Not Eligible',
-        }));
+        const results = students.map(student => {
+            // Calculate percentage based on actual totalMarks
+            const totalMarks = student.totalMarks || 50;
+            const percentage = (student.examMarks / totalMarks) * 100;
+            
+            return {
+                rank: student.rank || 'Not Ranked',
+                name: student.name,
+                registrationCode: student.registrationCode,
+                class: student.studyingClass,
+                school: student.schoolName,
+                marks: student.examMarks,
+                totalMarks: totalMarks,
+                percentage: parseFloat(percentage.toFixed(2)),
+                scholarship: student.scholarship || 'Not Eligible',
+                iasCoaching: student.iasCoaching ? 'Eligible' : 'Not Eligible',
+                isSelected : student.isSelected || false,
+            };
+        });
 
-        // Get statistics
-        const totalStudents = await Student.countDocuments({ examMarks: { $gt: 0 } });
-        const passedStudents = await Student.countDocuments({ examMarks: { $gte: 40 } });
-        const failedStudents = totalStudents - passedStudents;
-        const iasEligible = await Student.countDocuments({ iasCoaching: true });
+        // Get statistics with correct logic
+        const totalStudents = await Student.countDocuments({ examMarks: { $gt: 0 }, isDeleted: false });
+        
+        // Selected students based on marks >= 15
+        const selectedStudents = await Student.countDocuments({ 
+            examMarks: { $gte: 15 }, 
+            isDeleted: false 
+        });
+        
+        // Not selected students (marks between 1-14)
+        const notSelectedStudents = await Student.countDocuments({ 
+            examMarks: { $gt: 0, $lt: 15 }, 
+            isDeleted: false 
+        });
+        
+        // IAS eligible students (exactly those marked as iasCoaching = true)
+        const iasEligible = await Student.countDocuments({ 
+            iasCoaching: true, 
+            isDeleted: false 
+        });
 
         res.json({
             success: true,
@@ -168,9 +197,9 @@ exports.getTopResults = async (req, res) => {
                 results,
                 statistics: {
                     totalStudents,
-                    passedStudents,
-                    failedStudents,
-                    passPercentage: totalStudents > 0 ? (passedStudents / totalStudents) * 100 : 0,
+                    selectedStudents,
+                    notSelectedStudents,
+                    selectionPercentage: totalStudents > 0 ? (selectedStudents / totalStudents) * 100 : 0,
                     iasEligible,
                 },
             },
@@ -264,7 +293,7 @@ exports.generateRankList = async (req, res) => {
 
         // Create or update results in Result collection
         const studentsWithMarks = await Student.find({ examMarks: { $gt: 0 } })
-            .select('_id registrationCode examMarks totalMarks rank scholarship iasCoaching');
+            .select('_id registrationCode examMarks totalMarks rank scholarship iasCoaching isSelected');
 
         for (const student of studentsWithMarks) {
             await Result.findOneAndUpdate(
@@ -275,7 +304,7 @@ exports.generateRankList = async (req, res) => {
                     examMarks: student.examMarks,
                     totalMarks: student.totalMarks,
                     rank: student.rank,
-                    isQualified: student.examMarks >= 40,
+                    isQualified: student.isSelected || false,
                     scholarshipType: student.scholarship || '',
                     iasCoaching: student.iasCoaching,
                     publishedDate: new Date(),
@@ -284,14 +313,51 @@ exports.generateRankList = async (req, res) => {
             );
         }
 
+        // Count students with rank <= 100 AND marks >= 15
+        const iasEligibleCount = await Student.countDocuments({
+            rank: { $lte: 100 },
+            examMarks: { $gte: 15 },
+            isDeleted: false
+        });
+
+        // Get the student with rank 100 to show cutoff
+        const rank100Student = await Student.findOne({
+            rank: 100,
+            examMarks: { $gte: 15 },
+            isDeleted: false
+        }).select('name examMarks rank registrationCode');
+
+        // Get the student with the highest rank among IAS eligible (rank 100 or the last eligible)
+        const lastEligibleStudent = await Student.findOne({
+            iasCoaching: true,
+            isDeleted: false
+        }).sort({ rank: -1 }).select('name examMarks rank registrationCode');
+
         res.json({
             success: true,
-            message: 'Rank list generated successfully',
+            message: 'Unique rank list generated successfully',
             data: {
                 totalRanked: studentsWithMarks.length,
                 topPerformers: topPerformers.slice(0, 10),
                 scholarshipWinners: topPerformers.filter(s => s.scholarship).slice(0, 3),
-                iasEligible: studentsWithMarks.filter(s => s.rank <= 100).length,
+                iasEligible: iasEligibleCount,
+                iasDetails: {
+                    ...updateResult.iasDetails,
+                    rank100Included: !!rank100Student
+                },
+                cutoffInfo: lastEligibleStudent ? {
+                    rank: lastEligibleStudent.rank,
+                    marks: lastEligibleStudent.examMarks,
+                    name: lastEligibleStudent.name,
+                    registrationCode: lastEligibleStudent.registrationCode
+                } : null,
+                rank100Info: rank100Student ? {
+                    rank: rank100Student.rank,
+                    marks: rank100Student.examMarks,
+                    name: rank100Student.name,
+                    registrationCode: rank100Student.registrationCode,
+                    included: rank100Student.iasCoaching
+                } : null
             },
         });
     } catch (error) {
