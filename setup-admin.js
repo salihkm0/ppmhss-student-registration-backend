@@ -17,7 +17,7 @@ const Admin = mongoose.model('Admin', adminSchema);
 async function setupAdmin() {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/student_registration', {
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nmea', {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
