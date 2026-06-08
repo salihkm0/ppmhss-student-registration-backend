@@ -902,7 +902,7 @@ const studentSchema = new mongoose.Schema({
     },
     currentEditorModel: {
         type: String,
-        enum: ['Invigilator', 'Admin'],
+        enum: ['Invigilator', 'Admin', null],
         default: null
     },
     currentEditorName: {
