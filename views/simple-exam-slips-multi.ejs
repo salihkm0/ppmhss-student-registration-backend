@@ -279,7 +279,7 @@
     </style>
 </head>
 <body>
-    <% roomNumbers.forEach(roomNo => { 
+    <% roomNumbers.forEach((roomNo, roomIndex) => { 
         const roomStudents = studentsByRoom[roomNo];
         if (!roomStudents || roomStudents.length === 0) return;
         
@@ -307,24 +307,45 @@
             <!-- Slips Grid -->
             <div class="slips-grid">
                 <% pageStudents.forEach((student) => { %>
-                <div class="slip-container">
+                <div class="slip-container" style="padding: 2.5mm 3mm;">
                     <!-- Header -->
-                    <div class="slip-header">
-                        <div class="exam-name">NMEA TENDER SCHOLAR 26</div>
-                        <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    <div class="slip-header" style="margin-bottom: 1mm;">
+                        <div class="exam-name" style="font-size: 9pt;">NMEA TENDER SCHOLAR 26</div>
+                        <div class="school-name" style="font-size: 7.5pt;">PPMHSS KOTTUKKARA</div>
                     </div>
                     
                     <!-- Divider -->
-                    <div class="divider"></div>
+                    <div class="divider" style="margin: 0.5mm 0;"></div>
                     
-                    <!-- Registration Number -->
-                    <div class="reg-number">
-                       <span>REG.No.:</span> <%= student.registrationCode %>
+                    <!-- Candidate Name -->
+                    <div style="font-size: 8.5pt; font-weight: bold; text-align: center; margin-bottom: 0.5mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <%= student.name || 'Candidate' %>
                     </div>
                     
-                    <!-- Room Number -->
-                    <div class="reg-number">
-                       <span>Room.No.:</span> <%= student.roomNo %>
+                    <!-- Registration Number -->
+                    <div class="reg-number" style="font-size: 11pt; margin: 0.5mm 0; padding: 0.2mm; border: 0.5px solid #000; text-align: center; font-weight: bold; background: white;">
+                       <span>REG.No.:</span> <%= student.registrationCode %>
+                    </div>
+
+                    <!-- Medium, Class and QP Type in boxes -->
+                    <div class="bottom-info" style="display: flex; gap: 0.8mm; margin-top: 0.5mm;">
+                        <div class="info-item" style="flex: 1; border: 0.5px solid #000; text-align: center; padding: 0.2mm 0; font-weight: bold; background: white; min-width: 0;">
+                            <span class="label" style="font-size: 6pt; font-weight: normal; display: block; color: #333;">Class</span>
+                            <span class="value" style="font-size: 8pt; font-weight: bold;">Class <%= student.studyingClass || '' %></span>
+                        </div>
+                        <div class="info-item" style="flex: 1; border: 0.5px solid #000; text-align: center; padding: 0.2mm 0; font-weight: bold; background: white; min-width: 0;">
+                            <span class="label" style="font-size: 6pt; font-weight: normal; display: block; color: #333;">Medium</span>
+                            <span class="value" style="font-size: 8pt; font-weight: bold;"><%= student.medium || '' %></span>
+                        </div>
+                        <div class="info-item" style="flex: 1; border: 0.5px solid #000; text-align: center; padding: 0.2mm 0; font-weight: bold; background: white; min-width: 0;">
+                            <span class="label" style="font-size: 6pt; font-weight: normal; display: block; color: #333;">QP Type</span>
+                            <span class="value" style="font-size: 8pt; font-weight: bold;"><%= student.qpType || '' %></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Room & Seat Box -->
+                    <div class="room-box" style="border: 0.5px solid #000; margin: 0.5mm 0; padding: 0.2mm 0; text-align: center; font-weight: bold; font-size: 9.5pt;">
+                        Room: <%= student.roomNo %> / Seat: <%= student.seatNo %>
                     </div>
                 </div>
                 <% }) %>

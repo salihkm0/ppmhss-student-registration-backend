@@ -241,8 +241,12 @@
                         REG.No.: <%= student.registrationCode %>
                     </div>
 
-                    <!-- Medium and QP Type in boxes -->
+                    <!-- Medium, Class, and QP Type in boxes -->
                     <div class="bottom-info">
+                        <div class="info-item">
+                            <span class="label">Class</span>
+                            <span class="value">Class <%= student.studyingClass || '' %></span>
+                        </div>
                         <div class="info-item">
                             <span class="label">Medium</span>
                             <span class="value"><%= student.medium || '' %></span>
