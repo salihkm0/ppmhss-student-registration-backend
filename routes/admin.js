@@ -360,7 +360,7 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
 
     // Get students in room, sorted by seat number
     const students = await Student.find({ roomNo })
-      .select("name registrationCode seatNo studyingClass fatherName")
+      .select("name registrationCode seatNo studyingClass fatherName examType medium gender")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -370,11 +370,103 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
       });
     }
 
-    // Split students into pages of 20
-    const studentsPerPage = 20;
+    // Calculate statistics for the summary table
+    let englishCount = 0;
+    let malayalamCount = 0;
+    let englishTypeA = 0;
+    let englishTypeB = 0;
+    let malayalamTypeA = 0;
+    let malayalamTypeB = 0;
+    
+    // Class-specific medium and QP type counts
+    let class10EnglishCount = 0;
+    let class10MalayalamCount = 0;
+    let class10EnglishTypeA = 0;
+    let class10EnglishTypeB = 0;
+    let class10MalayalamTypeA = 0;
+    let class10MalayalamTypeB = 0;
+
+    let class12EnglishCount = 0;
+    let class12MalayalamCount = 0;
+    let class12EnglishTypeA = 0;
+    let class12EnglishTypeB = 0;
+    let class12MalayalamTypeA = 0;
+    let class12MalayalamTypeB = 0;
+
+    // Class counts
+    let class10Count = 0;
+    let class12Count = 0;
+    
+    // Gender counts
+    let maleCount = 0;
+    let femaleCount = 0;
+    let otherCount = 0;
+
+    students.forEach((student) => {
+      const qpType = student.examType || 'A';
+      
+      // Count class
+      if (student.studyingClass === '10') {
+        class10Count++;
+        if (student.medium === 'English') {
+          class10EnglishCount++;
+          if (qpType === 'A') class10EnglishTypeA++;
+          else class10EnglishTypeB++;
+        } else if (student.medium === 'Malayalam') {
+          class10MalayalamCount++;
+          if (qpType === 'A') class10MalayalamTypeA++;
+          else class10MalayalamTypeB++;
+        }
+      } else if (student.studyingClass === '12') {
+        class12Count++;
+        if (student.medium === 'English') {
+          class12EnglishCount++;
+          if (qpType === 'A') class12EnglishTypeA++;
+          else class12EnglishTypeB++;
+        } else if (student.medium === 'Malayalam') {
+          class12MalayalamCount++;
+          if (qpType === 'A') class12MalayalamTypeA++;
+          else class12MalayalamTypeB++;
+        }
+      }
+      
+      // Count gender
+      if (student.gender === 'Male') {
+        maleCount++;
+      } else if (student.gender === 'Female') {
+        femaleCount++;
+      } else if (student.gender === 'Other') {
+        otherCount++;
+      }
+      
+      // Count medium and QP type
+      if (student.medium === 'English') {
+        englishCount++;
+        if (qpType === 'A') englishTypeA++;
+        else englishTypeB++;
+      } else if (student.medium === 'Malayalam') {
+        malayalamCount++;
+        if (qpType === 'A') malayalamTypeA++;
+        else malayalamTypeB++;
+      }
+    });
+
+    let maxRows = 20;
+    let separateSummaryPage = false;
     const studentPages = [];
-    for (let i = 0; i < students.length; i += studentsPerPage) {
-      studentPages.push(students.slice(i, i + studentsPerPage));
+
+    if (students.length <= 20) {
+      studentPages.push(students);
+      maxRows = 20;
+      separateSummaryPage = false;
+    } else {
+      studentPages.push(students.slice(0, 30));
+      maxRows = 30;
+      separateSummaryPage = true;
+      
+      for (let i = 30; i < students.length; i += 30) {
+        studentPages.push(students.slice(i, i + 30));
+      }
     }
 
     // Prepare data for EJS template - SIMILAR TO HALL TICKET
@@ -382,11 +474,46 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
       roomNo,
       studentPages: studentPages,
       totalStudents: students.length,
+      maxRows,
+      separateSummaryPage,
       generationDate: new Date().toLocaleDateString("en-IN"),
-      examDate: "01-03-2026", // Make sure this is defined
+      examDate: "28-06-2026", // Make sure this is defined
       examTime: "10:00 AM - 11:30 PM", // Make sure this is defined
       isPreview: req.query.preview !== "false",
       autoPrint: req.query.print === "true",
+      summary: {
+        englishCount,
+        malayalamCount,
+        englishTypeA,
+        englishTypeB,
+        malayalamTypeA,
+        malayalamTypeB,
+        totalTypeA: englishTypeA + malayalamTypeA,
+        totalTypeB: englishTypeB + malayalamTypeB,
+        maleCount,
+        femaleCount,
+        otherCount,
+        class10Count,
+        class12Count,
+        // Class 10 details
+        class10EnglishCount,
+        class10MalayalamCount,
+        class10EnglishTypeA,
+        class10EnglishTypeB,
+        class10MalayalamTypeA,
+        class10MalayalamTypeB,
+        class10TotalTypeA: class10EnglishTypeA + class10MalayalamTypeA,
+        class10TotalTypeB: class10EnglishTypeB + class10MalayalamTypeB,
+        // Class 12 details
+        class12EnglishCount,
+        class12MalayalamCount,
+        class12EnglishTypeA,
+        class12EnglishTypeB,
+        class12MalayalamTypeA,
+        class12MalayalamTypeB,
+        class12TotalTypeA: class12EnglishTypeA + class12MalayalamTypeA,
+        class12TotalTypeB: class12EnglishTypeB + class12MalayalamTypeB
+      }
     };
 
     // Render HTML template - let browser handle PDF conversion
@@ -415,7 +542,7 @@ router.get("/exam-slips/:roomNo", auth, async (req, res) => {
     // Get students in room, sorted by seat number
     const students = await Student.find({ roomNo })
       .select(
-        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address",
+        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address examType",
       )
       .sort({ seatNo: 1 });
 
@@ -439,7 +566,7 @@ router.get("/exam-slips/:roomNo", auth, async (req, res) => {
       studentPages: studentPages,
       totalStudents: students.length,
       generationDate: new Date().toLocaleDateString("en-IN"),
-      examDate: "01-03-2026",
+      examDate: "28-06-2026",
       examTime: "10:00 AM - 11:30 PM",
       examCenter: "PPM HSS Kottukkara",
       isPreview: req.query.preview !== "false",
@@ -514,7 +641,7 @@ router.get("/exam-slips", auth, async (req, res) => {
       roomNumbers: Object.keys(studentsByRoom).sort((a, b) => a - b),
       totalStudents: students.length,
       generationDate: new Date().toLocaleDateString("en-IN"),
-      examDate: "01-03-2026",
+      examDate: "28-06-2026",
       examTime: "10:00 AM - 11:30 PM",
       examCenter: "PPM HSS Kottukkara",
       isPreview: req.query.preview !== "false",
@@ -546,7 +673,7 @@ router.get("/simple-exam-slips/:roomNo", auth, async (req, res) => {
 
     // Get students in room, sorted by seat number
     const students = await Student.find({ roomNo })
-      .select("name registrationCode seatNo studyingClass")
+      .select("name registrationCode seatNo studyingClass medium examType")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -556,11 +683,18 @@ router.get("/simple-exam-slips/:roomNo", auth, async (req, res) => {
       });
     }
 
-    // Split students into pages of 16 (4x4 grid per A4 page)
-    const studentsPerPage = 21; // 7 rows × 3 columns
+    // Add qpType to each student based on database-saved examType
+    const studentsWithQPType = students.map(student => {
+      const studentObj = student.toObject();
+      studentObj.qpType = student.examType || 'A';
+      return studentObj;
+    });
+
+    // Split students into pages of 21 (7 rows × 3 columns)
+    const studentsPerPage = 21;
     const studentPages = [];
-    for (let i = 0; i < students.length; i += studentsPerPage) {
-      studentPages.push(students.slice(i, i + studentsPerPage));
+    for (let i = 0; i < studentsWithQPType.length; i += studentsPerPage) {
+      studentPages.push(studentsWithQPType.slice(i, i + studentsPerPage));
     }
 
     // Prepare data for EJS template
@@ -591,7 +725,7 @@ router.get("/simple-exam-slips", auth, async (req, res) => {
 
     // Get all students sorted by room then seat
     const students = await Student.find(roomFilter)
-      .select("name registrationCode seatNo studyingClass roomNo")
+      .select("name registrationCode seatNo studyingClass roomNo medium examType")
       .sort({ roomNo: 1, seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -601,13 +735,15 @@ router.get("/simple-exam-slips", auth, async (req, res) => {
       });
     }
 
-    // Group students by room
+    // Group students by room and map qpType
     const studentsByRoom = {};
     students.forEach((student) => {
+      const studentObj = student.toObject();
+      studentObj.qpType = student.examType || 'A';
       if (!studentsByRoom[student.roomNo]) {
         studentsByRoom[student.roomNo] = [];
       }
-      studentsByRoom[student.roomNo].push(student);
+      studentsByRoom[student.roomNo].push(studentObj);
     });
 
     // Prepare template data

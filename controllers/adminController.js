@@ -1342,7 +1342,8 @@ const updateRanksAndScholarships = async (req, res) => {
 const getTopPerformers = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const topPerformers = await Student.getTopPerformers(limit);
+        const { studyingClass } = req.query;
+        const topPerformers = await Student.getTopPerformers(limit, studyingClass);
 
         res.json({
             success: true,
@@ -1485,7 +1486,7 @@ const adminEditMarks = async (req, res) => {
 // Get all students with mark entry status
 const getStudentsByMarkStatus = async (req, res) => {
     try {
-        const { status, roomNo } = req.query;
+        const { status, roomNo, studyingClass } = req.query;
 
         const query = { isDeleted: false };
         
@@ -1497,9 +1498,13 @@ const getStudentsByMarkStatus = async (req, res) => {
             query.roomNo = parseInt(roomNo);
         }
 
+        if (studyingClass === '10' || studyingClass === '12') {
+            query.studyingClass = studyingClass;
+        }
+
         const students = await Student.find(query)
             .sort({ roomNo: 1, seatNo: 1 })
-            .select('name registrationCode roomNo seatNo examMarks markEntryStatus submittedAt submittedBy currentEditor lastEditedAt');
+            .select('name registrationCode roomNo seatNo examMarks markEntryStatus submittedAt submittedBy currentEditor lastEditedAt studyingClass');
 
         // Get room-wise summary
         const roomSummary = await Student.aggregate([

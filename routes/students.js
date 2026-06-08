@@ -170,7 +170,7 @@ router.get('/rooms/distribution', async (req, res) => {
                 distribution,
                 totalStudents,
                 roomsOccupied: distribution.length,
-                studentsPerRoom: 20
+                studentsPerRoom: 30
             }
         });
     } catch (error) {
@@ -210,8 +210,8 @@ router.get('/rooms/:roomNo', async (req, res) => {
             data: {
                 roomNo,
                 studentCount: students.length,
-                capacity: 20,
-                availableSeats: 20 - students.length,
+                capacity: 30,
+                availableSeats: 30 - students.length,
                 students
             }
         });

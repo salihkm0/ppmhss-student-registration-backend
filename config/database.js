@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+    console.log(process.env.MONGODB_URI)
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/student_registration', {
+        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nmea', {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });

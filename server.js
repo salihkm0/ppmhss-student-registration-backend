@@ -154,7 +154,7 @@ app.get('/test-exam-slips', async (req, res) => {
         studentPages: [testStudents],
         totalStudents: 23,
         generationDate: new Date().toLocaleDateString('en-IN'),
-        examDate: '01-03-2026',
+        examDate: '28-06-2026',
         examTime: '10:00 AM - 11:30 PM',
         examCenter: 'PPM HSS Kottukkara',
         isPreview: true,

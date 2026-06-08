@@ -788,7 +788,12 @@ const studentSchema = new mongoose.Schema({
     studyingClass: {
         type: String,
         required: [true, 'Class is required'],
-        enum: ['7', '8', '9', '10', '11', '12']
+        enum: ['10', '12']
+    },
+    examType: {
+        type: String,
+        enum: ['A', 'B', ''],
+        default: ''
     },
     medium: {
         type: String,
@@ -905,6 +910,7 @@ const studentSchema = new mongoose.Schema({
         enum: ['Invigilator', 'Admin', null],
         default: null
     },
+
     currentEditorName: {
         type: String,
         default: null
@@ -966,53 +972,100 @@ studentSchema.pre('countDocuments', function() {
     }
 });
 
-// Helper function to find next available seat in a room
-const findAvailableSeat = async function(roomNo) {
-    const takenSeats = await this.find({
-        roomNo: roomNo,
-        isDeleted: false
-    }).select('seatNo');
-    
-    const takenSeatNumbers = takenSeats.map(s => s.seatNo);
-    
-    // Find first available seat (1-20)
-    for (let seat = 1; seat <= 20; seat++) {
-        if (!takenSeatNumbers.includes(seat)) {
-            return seat;
+// ─────────────────────────────────────────────────────────────────────────────
+// SEATING LOGIC (v2 – 2 classes: 10th & 12th)
+// ─────────────────────────────────────────────────────────────────────────────
+// Room layout:
+//   • 30 students per room, 10 desks, 3 students per desk
+//   • Desk n  → seats (n-1)*3+1 (left/10th), (n-1)*3+2 (center/12th), (n-1)*3+3 (right/10th)
+//   • Seat position within a desk = ((seatNo - 1) % 3) + 1
+//       deskPos 1 → 10th class, Exam Type A  (left)
+//       deskPos 2 → 12th class, Exam Type A  (center)
+//       deskPos 3 → 10th class, Exam Type B  (right)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STUDENTS_PER_ROOM = 30;
+const DESKS_PER_ROOM    = 10;
+const STUDENTS_PER_DESK = 3;
+
+/**
+ * Returns all valid seat numbers in a room for a given class.
+ * 10th  → positions 1 & 3 within each desk (seats 1,3,4,6,7,9 …)
+ * 12th  → position 2 within each desk        (seats 2,5,8,11 …)
+ */
+const seatsForClass = function(studyingClass) {
+    const seats = [];
+    for (let desk = 1; desk <= DESKS_PER_ROOM; desk++) {
+        const base = (desk - 1) * STUDENTS_PER_DESK;
+        if (studyingClass === '10') {
+            seats.push(base + 1); // left
+            seats.push(base + 3); // right
+        } else if (studyingClass === '12') {
+            seats.push(base + 2); // center
         }
     }
-    return null; // Room is full
+    return seats;
 };
 
-// Helper function to find available room with seats
-const findAvailableRoom = async function() {
-    // Check existing rooms for available seats
+/**
+ * Exam type derived from seat number:
+ *   deskPos 1 (10th left)    → always Type A
+ *   deskPos 3 (10th right)   → always Type B
+ *   deskPos 2 (12th center)  → alternates A/B per desk:
+ *                               odd desk  → Type A
+ *                               even desk → Type B
+ */
+const examTypeForSeat = function(seatNo) {
+    const deskPos = ((seatNo - 1) % STUDENTS_PER_DESK) + 1;
+    if (deskPos === 1) return 'A'; // 10th left
+    if (deskPos === 3) return 'B'; // 10th right
+    // deskPos === 2: 12th center – alternate by desk number
+    const deskNo = Math.ceil(seatNo / STUDENTS_PER_DESK);
+    return deskNo % 2 === 1 ? 'A' : 'B';
+};
+
+/**
+ * Find the next available seat in a specific room for a given class.
+ * Returns null if no seat is available for that class.
+ */
+const findAvailableSeatForClass = async function(roomNo, studyingClass) {
+    const occupiedDocs = await this.find({ roomNo, isDeleted: false }).select('seatNo');
+    const occupied = new Set(occupiedDocs.map(s => s.seatNo));
+
+    const candidateSeats = seatsForClass(studyingClass);
+    for (const seat of candidateSeats) {
+        if (!occupied.has(seat)) return seat;
+    }
+    return null; // class quota in this room is full
+};
+
+/**
+ * Find the room + seat for the next student of a given class.
+ * Priority: fill existing rooms in order before opening a new room.
+ */
+const findAvailableRoom = async function(studyingClass) {
+    // Get all partially-filled rooms (fewer than STUDENTS_PER_ROOM active students)
     const roomOccupancy = await this.aggregate([
         { $match: { isDeleted: false } },
-        { $group: {
-            _id: '$roomNo',
-            count: { $sum: 1 },
-            seats: { $push: '$seatNo' }
-        }},
-        { $match: { count: { $lt: 20 } } },
+        { $group: { _id: '$roomNo', count: { $sum: 1 } } },
+        { $match: { count: { $lt: STUDENTS_PER_ROOM } } },
         { $sort: { _id: 1 } }
     ]);
-    
-    // Find room with available seat
+
     for (const room of roomOccupancy) {
-        const availableSeat = await findAvailableSeat.call(this, room._id);
-        if (availableSeat) {
-            return { roomNo: room._id, seatNo: availableSeat };
+        const seat = await findAvailableSeatForClass.call(this, room._id, studyingClass);
+        if (seat !== null) {
+            return { roomNo: room._id, seatNo: seat };
         }
     }
-    
-    // If all rooms are full, create new room
-    const maxRoom = await this.findOne({ isDeleted: false })
-        .sort({ roomNo: -1 })
-        .select('roomNo');
-    
+
+    // All existing rooms are either full or have no seats for this class → open a new room
+    const maxRoom = await this.findOne({ isDeleted: false }).sort({ roomNo: -1 }).select('roomNo');
     const newRoomNo = maxRoom ? maxRoom.roomNo + 1 : 1;
-    return { roomNo: newRoomNo, seatNo: 1 };
+
+    // Pick the first valid seat in the new room for this class
+    const firstSeat = seatsForClass(studyingClass)[0];
+    return { roomNo: newRoomNo, seatNo: firstSeat };
 };
 
 // Generate registration code before saving
@@ -1020,28 +1073,35 @@ studentSchema.pre('save', async function(next) {
     try {
         // Only generate codes for new documents
         if (this.isNew) {
-            // Generate simple sequential registration code starting from PPM1000
+            // Generate sequential registration code: NMEA2xxx for Class 10, NMEA3xxx for Class 12
             if (!this.registrationCode) {
+                const cls = this.studyingClass === '10' ? '10' : '12';
+                const startNum = cls === '10' ? 2000 : 3000;
+                
                 const lastStudent = await this.constructor.findOne(
-                    { isDeleted: false },
+                    { 
+                        studyingClass: cls,
+                        isDeleted: false,
+                        registrationCode: { $regex: '^NMEA' }
+                    },
                     {},
                     { sort: { 'registrationCode': -1 } }
                 );
                 
-                let nextNumber = 1000;
+                let nextNumber = startNum;
                 
                 if (lastStudent && lastStudent.registrationCode) {
                     const lastRegCode = lastStudent.registrationCode;
-                    const match = lastRegCode.match(/PPM(\d+)/);
+                    const match = lastRegCode.match(/NMEA(\d+)/);
                     if (match && match[1]) {
                         const lastNumber = parseInt(match[1]);
-                        if (!isNaN(lastNumber) && lastNumber >= 1000) {
+                        if (!isNaN(lastNumber) && lastNumber >= startNum) {
                             nextNumber = lastNumber + 1;
                         }
                     }
                 }
                 
-                this.registrationCode = `PPM${nextNumber}`;
+                this.registrationCode = `NMEA${nextNumber}`;
                 this.originalRegistrationCode = this.registrationCode;
             }
             
@@ -1067,11 +1127,34 @@ studentSchema.pre('save', async function(next) {
                 this.originalApplicationNo = this.applicationNo;
             }
             
-            // Assign room and seat - fill gaps first, then create new room if needed
+            // Assign room, seat, and examType based on class
             if (this.roomNo === null || this.seatNo === null) {
-                const available = await findAvailableRoom.call(this.constructor);
+                const available = await findAvailableRoom.call(this.constructor, this.studyingClass);
                 this.roomNo = available.roomNo;
                 this.seatNo = available.seatNo;
+
+                // Auto-create Room document in Room collection if it doesn't exist
+                if (this.roomNo) {
+                    try {
+                        const RoomModel = mongoose.model('Room');
+                        const roomExists = await RoomModel.findOne({ roomNo: this.roomNo });
+                        if (!roomExists) {
+                            const newRoom = new RoomModel({
+                                roomNo: this.roomNo,
+                                totalSeats: 30,
+                                status: 'Active'
+                            });
+                            await newRoom.save();
+                            console.log(`Auto-created Room ${this.roomNo} in database during student registration.`);
+                        }
+                    } catch (roomErr) {
+                        console.error('Error auto-creating Room document during registration:', roomErr);
+                    }
+                }
+            }
+            // Derive examType from the assigned seat position
+            if (!this.examType) {
+                this.examType = examTypeForSeat(this.seatNo);
             }
         }
         
@@ -1132,39 +1215,35 @@ studentSchema.statics.softDelete = async function(studentId, adminId, reason) {
     }
 };
 
-// Static method to reassign seats in a room after deletion
+// Static method to handle after a student deletion.
+// With the desk-based layout (v2), each seat number is permanently mapped
+// to a specific class and exam type, so we do NOT renumber existing students.
+// The vacated seat will simply be re-filled by the next student of the same class.
 studentSchema.statics.reassignSeats = async function(roomNo) {
     try {
-        // Get all active students in the room sorted by seat number
-        const students = await this.find({
-            roomNo: roomNo,
-            isDeleted: false
-        }).sort({ seatNo: 1 });
-        
-        // Reassign sequential seat numbers
-        const updatePromises = [];
-        students.forEach((student, index) => {
-            const newSeatNo = index + 1;
-            if (student.seatNo !== newSeatNo) {
-                updatePromises.push(
-                    this.findByIdAndUpdate(
-                        student._id,
-                        { $set: { seatNo: newSeatNo } },
-                        { new: true }
-                    )
-                );
-            }
-        });
-        
+        // Recalculate examType for all students in the room (safety net)
+        const students = await this.find({ roomNo, isDeleted: false }).select('_id seatNo examType');
+
+        const updatePromises = students
+            .filter(s => s.seatNo != null)
+            .map(s => {
+                const correctExamType = examTypeForSeat(s.seatNo);
+                if (s.examType !== correctExamType) {
+                    return this.findByIdAndUpdate(s._id, { $set: { examType: correctExamType } }, { new: true });
+                }
+                return null;
+            })
+            .filter(Boolean);
+
         await Promise.all(updatePromises);
-        
+
         return {
             success: true,
-            message: `Seats reassigned in Room ${roomNo}`,
+            message: `Seat integrity verified in Room ${roomNo}`,
             studentsUpdated: updatePromises.length
         };
     } catch (error) {
-        console.error('Error reassigning seats:', error);
+        console.error('Error in reassignSeats:', error);
         throw error;
     }
 };
@@ -1205,7 +1284,26 @@ studentSchema.statics.restore = async function(studentId) {
         }
         
         // Find available seat
-        const available = await findAvailableRoom.call(this);
+        const available = await findAvailableRoom.call(this, deletedStudent.studyingClass);
+        
+        // Auto-create Room document in Room collection if it doesn't exist
+        if (available.roomNo) {
+            try {
+                const RoomModel = mongoose.model('Room');
+                const roomExists = await RoomModel.findOne({ roomNo: available.roomNo });
+                if (!roomExists) {
+                    const newRoom = new RoomModel({
+                        roomNo: available.roomNo,
+                        totalSeats: 30,
+                        status: 'Active'
+                    });
+                    await newRoom.save();
+                    console.log(`Auto-created Room ${available.roomNo} in database during student restore.`);
+                }
+            } catch (roomErr) {
+                console.error('Error auto-creating Room document during restore:', roomErr);
+            }
+        }
         
         // Restore the student
         const restoredStudent = await this.findByIdAndUpdate(
@@ -1226,7 +1324,8 @@ studentSchema.statics.restore = async function(studentId) {
             },
             { 
                 new: true,
-                runValidators: true
+                runValidators: true,
+                includeDeleted: true
             }
         );
         
@@ -1320,8 +1419,8 @@ studentSchema.statics.getRoomDistribution = async function() {
                 maleCount: 1,
                 femaleCount: 1,
                 otherCount: 1,
-                availableSeats: { $subtract: [20, '$totalStudents'] },
-                occupancyRate: { $multiply: [{ $divide: ['$totalStudents', 20] }, 100] },
+                availableSeats: { $subtract: [30, '$totalStudents'] },
+                occupancyRate: { $multiply: [{ $divide: ['$totalStudents', 30] }, 100] },
                 students: { $sortArray: { input: '$students', sortBy: { seatNo: 1 } } }
             }}
         ]);
@@ -1333,166 +1432,67 @@ studentSchema.statics.getRoomDistribution = async function() {
     }
 };
 
-// Static method to update ranks and scholarships with name-based tie-breaking for unique ranks
+// Static method to update ranks separately for Class 10 and Class 12 (only top 3 ranks, no scholarships/selection/IAS)
 studentSchema.statics.updateRanksAndScholarships = async function() {
     try {
-        // Get all students with marks (including 0), sorted by marks (desc) and name (asc)
-        const students = await this.find({ examMarks: { $gte: 0 }, isDeleted: false, markEntryStatus: { $in: ['submitted', 'final'] } })
-            .sort({ examMarks: -1, name: 1 }) // Sort by marks descending, then name ascending
+        const classes = ['10', '12'];
+        const resultsSummary = {};
+
+        for (const studyingClass of classes) {
+            // Get all students of this class with marks (including 0), sorted by marks (desc) and name (asc)
+            const students = await this.find({ 
+                studyingClass,
+                examMarks: { $gte: 0 }, 
+                isDeleted: false, 
+                markEntryStatus: { $in: ['submitted', 'final'] } 
+            })
+            .sort({ examMarks: -1, name: 1 })
             .select('_id examMarks rank scholarship iasCoaching resultStatus status roomNo seatNo name isSelected');
-        
-        let rank = 1;
-        let position = 1; // Track actual position for scholarships
-        
-        // Track ALL students in order for IAS eligibility
-        const allStudentsInOrder = [];
-        
-        const updatePromises = [];
-        
-        for (let i = 0; i < students.length; i++) {
-            const student = students[i];
-            
-            // UNIQUE RANK: Each student gets a unique rank based on their position
-            const currentRank = rank;
-            
-            // Track ALL students in order (for IAS eligibility)
-            allStudentsInOrder.push({
-                studentId: student._id,
-                marks: student.examMarks,
-                name: student.name,
-                rank: currentRank,
-                position: position
-            });
-            
-            // Assign scholarships based on position in sorted list (top 3 distinct positions)
-            let scholarship = '';
-            if (position === 1) {
-                scholarship = 'Gold';
-            } else if (position === 2) {
-                scholarship = 'Silver';
-            } else if (position === 3) {
-                scholarship = 'Bronze';
+
+            const updatePromises = [];
+
+            for (let i = 0; i < students.length; i++) {
+                const student = students[i];
+                // Only assign rank if student is in the top 3 position (index 0, 1, 2) and has marks > 0
+                const currentRank = (i < 3 && student.examMarks > 0) ? (i + 1) : 0;
+                
+                updatePromises.push(
+                    this.findByIdAndUpdate(
+                        student._id,
+                        {
+                            $set: {
+                                rank: currentRank,
+                                scholarship: '',
+                                iasCoaching: false,
+                                isSelected: false,
+                                resultStatus: 'Rank Published',
+                                status: 'Result Published',
+                                markEntryStatus: 'final'
+                            }
+                        },
+                        { new: true, runValidators: true }
+                    )
+                );
+                
+                console.log(`Student: ${student.name}, Class: ${studyingClass}, Marks: ${student.examMarks}, Rank: ${currentRank}`);
             }
+
+            await Promise.all(updatePromises);
             
-            // Student is selected if marks are 15 or above
-            const isSelected = student.examMarks >= 15;
-            
-            // Set resultStatus to 'Rank Published'
-            const resultStatus = 'Rank Published';
-            
-            // Temporarily set iasCoaching to false (will update after determining top 100)
-            updatePromises.push(
-                this.findByIdAndUpdate(
-                    student._id,
-                    {
-                        $set: {
-                            rank: currentRank,
-                            scholarship: scholarship,
-                            iasCoaching: false, // Temporarily false
-                            isSelected: isSelected,
-                            resultStatus: resultStatus,
-                            status: 'Result Published',
-                            markEntryStatus: 'final'
-                        }
-                    },
-                    { new: true, runValidators: true }
-                )
-            );
-            
-            console.log(`Student: ${student.name}, Marks: ${student.examMarks}, Position: ${position}, Unique Rank: ${currentRank}, Scholarship: ${scholarship}, IAS: Pending, Selected: ${isSelected}`);
-            
-            rank++; // Always increment rank for each student
-            position++; // Always increment position for each student
+            resultsSummary[studyingClass] = {
+                totalRanked: students.length,
+                topPerformers: students.slice(0, 3).map((s, idx) => ({
+                    name: s.name,
+                    marks: s.examMarks,
+                    rank: idx + 1
+                }))
+            };
         }
-        
-        // Wait for all initial updates to complete
-        await Promise.all(updatePromises);
-        
-        // Clear the array for the next step
-        updatePromises.length = 0;
-        
-        // FIXED: Filter students with marks >= 15 for IAS eligibility, but PRESERVE ORDER
-        const eligibleForIAS = allStudentsInOrder.filter(s => s.marks >= 15);
-        
-        console.log(`\n--- Students with 15+ marks (in original order) ---`);
-        eligibleForIAS.forEach((student, index) => {
-            console.log(`${index + 1}: ${student.name} - Marks: ${student.marks}, Rank: ${student.rank}, Position: ${student.position}`);
-        });
-        
-        // Take only the first 100 students for IAS coaching (these are the top 100 by position)
-        const top100ForIAS = eligibleForIAS.slice(0, 100);
-        const top100Ids = new Set(top100ForIAS.map(s => s.studentId.toString()));
-        
-        console.log(`\n--- IAS Coaching Eligibility (Top 100 with 15+ marks) ---`);
-        console.log(`Total students with 15+ marks: ${eligibleForIAS.length}`);
-        console.log(`Selected for IAS coaching: ${top100ForIAS.length}`);
-        console.log(`Cutoff marks: ${top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].marks : 0}`);
-        console.log(`Cutoff rank: ${top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].rank : 0}`);
-        
-        // Display the top 100 students with their ranks
-        top100ForIAS.forEach((student, index) => {
-            console.log(`IAS ${index + 1}: ${student.name} - Marks: ${student.marks}, Unique Rank: ${student.rank}, Position: ${student.position}`);
-        });
-        
-        // Check specifically for rank 100
-        const rank100Student = allStudentsInOrder.find(s => s.rank === 100);
-        if (rank100Student) {
-            const isRank100Eligible = rank100Student.marks >= 15;
-            const isRank100InTop100 = top100Ids.has(rank100Student.studentId.toString());
-            
-            console.log(`\n--- Rank 100 Student Status ---`);
-            console.log(`Name: ${rank100Student.name}`);
-            console.log(`Marks: ${rank100Student.marks} (${isRank100Eligible ? '≥15 ✓' : '<15 ✗'})`);
-            console.log(`In top 100 for IAS: ${isRank100InTop100 ? 'YES ✓' : 'NO ✗'}`);
-            
-            if (isRank100Eligible && !isRank100InTop100) {
-                console.log(`⚠️ WARNING: Rank 100 student has ${rank100Student.marks} marks but is NOT in top 100 for IAS!`);
-            }
-        }
-        
-        // Update IAS coaching status for all students
-        for (let i = 0; i < students.length; i++) {
-            const student = students[i];
-            
-            // Check if this student should get IAS coaching
-            let iasCoaching = false;
-            
-            // Only students with marks >= 15 can get IAS coaching
-            if (student.examMarks >= 15) {
-                // Check if this student is in the top 100 by position
-                iasCoaching = top100Ids.has(student._id.toString());
-            }
-            
-            updatePromises.push(
-                this.findByIdAndUpdate(
-                    student._id,
-                    {
-                        $set: {
-                            iasCoaching: iasCoaching
-                        }
-                    },
-                    { new: true }
-                )
-            );
-        }
-        
-        await Promise.all(updatePromises);
-        
-        // Final verification - check if rank 100 now has iasCoaching = true
-        const finalRank100Student = await this.findOne({ rank: 100, isDeleted: false });
-        
+
         return {
             success: true,
-            message: `Unique ranks and scholarships updated for ${students.length} students`,
-            updatedCount: students.length,
-            iasDetails: {
-                totalEligible: eligibleForIAS.length,
-                selectedForIAS: top100ForIAS.length,
-                iasCoachingCutoffMarks: top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].marks : 0,
-                iasCoachingCutoffRank: top100ForIAS.length > 0 ? top100ForIAS[top100ForIAS.length - 1].rank : 0,
-                rank100Included: top100ForIAS.some(s => s.rank === 100),
-                rank100FinalStatus: finalRank100Student ? finalRank100Student.iasCoaching : null
-            }
+            message: 'Ranks (top 3 only) updated separately for Class 10 & 12',
+            iasDetails: resultsSummary
         };
     } catch (error) {
         console.error('Error updating ranks:', error);
@@ -1500,11 +1500,16 @@ studentSchema.statics.updateRanksAndScholarships = async function() {
     }
 };
 
-// Static method to get top performers
-studentSchema.statics.getTopPerformers = async function(limit = 10) {
+// Static method to get top performers (accepts optional studyingClass parameter)
+studentSchema.statics.getTopPerformers = async function(limit = 10, studyingClass) {
     try {
-        const topPerformers = await this.find({ examMarks: { $gt: 0 }, isDeleted: false })
-            .sort({ rank: 1, name: 1 }) // Sort by rank, then name for consistency
+        const query = { examMarks: { $gt: 0 }, isDeleted: false };
+        if (studyingClass === '10' || studyingClass === '12') {
+            query.studyingClass = studyingClass;
+        }
+        
+        const topPerformers = await this.find(query)
+            .sort({ examMarks: -1, name: 1 })
             .limit(limit)
             .select('name registrationCode examMarks totalMarks rank scholarship iasCoaching studyingClass schoolName roomNo seatNo markEntryStatus isSelected');
         
@@ -1528,12 +1533,12 @@ studentSchema.statics.getAvailableSeats = async function() {
             { $project: {
                 roomNo: '$_id',
                 occupiedSeats: 1,
-                availableSeats: { $subtract: [20, '$occupiedSeats'] },
-                isFull: { $eq: ['$occupiedSeats', 20] },
+                availableSeats: { $subtract: [30, '$occupiedSeats'] },
+                isFull: { $eq: ['$occupiedSeats', 30] },
                 seatNumbers: { $sortArray: { input: '$seatNumbers', sortBy: 1 } },
                 availableSeatNumbers: {
                     $setDifference: [
-                        { $range: [1, 21] },
+                        { $range: [1, 31] },
                         '$seatNumbers'
                     ]
                 }

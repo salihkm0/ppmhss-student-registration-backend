@@ -259,57 +259,7 @@ router.get(
   }
 );
 
-router.get("/rooms/stats", auth(["admin", "superadmin"]), async (req, res) => {
-  try {
-    const studentRooms = await Student.aggregate([
-      { $match: { isDeleted: false } },
-      {
-        $group: {
-          _id: "$roomNo",
-          studentCount: { $sum: 1 },
-          genderCounts: {
-            $push: "$gender",
-          },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    const formattedRooms = studentRooms.map((room) => {
-      const genderStats = {};
-      room.genderCounts.forEach((gender) => {
-        genderStats[gender] = (genderStats[gender] || 0) + 1;
-      });
-
-      const genderCountsArray = Object.entries(genderStats).map(
-        ([gender, count]) => ({
-          _id: gender,
-          count: count,
-        }),
-      );
-
-      return {
-        roomNo: room._id,
-        studentCount: room.studentCount,
-        capacity: 20,
-        availableSeats: 20 - room.studentCount,
-        genderCounts: genderCountsArray,
-      };
-    });
-
-    res.json({
-      success: true,
-      count: formattedRooms.length,
-      data: formattedRooms,
-    });
-  } catch (error) {
-    console.error("Error fetching room stats:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch room statistics",
-    });
-  }
-});
+router.get("/rooms/stats", auth(["admin", "superadmin"]), require("../controllers/roomController").getAllRooms);
 
 // Generate attendance sheet
 router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
@@ -328,7 +278,7 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo aadhaarNo medium gender")
+      .select("name registrationCode seatNo aadhaarNo medium gender examType studyingClass")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -346,13 +296,57 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
     let malayalamTypeA = 0;
     let malayalamTypeB = 0;
     
+    // Class-specific medium and QP type counts
+    let class10EnglishCount = 0;
+    let class10MalayalamCount = 0;
+    let class10EnglishTypeA = 0;
+    let class10EnglishTypeB = 0;
+    let class10MalayalamTypeA = 0;
+    let class10MalayalamTypeB = 0;
+
+    let class12EnglishCount = 0;
+    let class12MalayalamCount = 0;
+    let class12EnglishTypeA = 0;
+    let class12EnglishTypeB = 0;
+    let class12MalayalamTypeA = 0;
+    let class12MalayalamTypeB = 0;
+
+    // Class counts
+    let class10Count = 0;
+    let class12Count = 0;
+    
     // Gender counts
     let maleCount = 0;
     let femaleCount = 0;
     let otherCount = 0;
 
-    students.forEach((student, index) => {
-      const qpType = (index % 2 === 0) ? 'A' : 'B';
+    students.forEach((student) => {
+      const qpType = student.examType || 'A';
+      
+      // Count class
+      if (student.studyingClass === '10') {
+        class10Count++;
+        if (student.medium === 'English') {
+          class10EnglishCount++;
+          if (qpType === 'A') class10EnglishTypeA++;
+          else class10EnglishTypeB++;
+        } else if (student.medium === 'Malayalam') {
+          class10MalayalamCount++;
+          if (qpType === 'A') class10MalayalamTypeA++;
+          else class10MalayalamTypeB++;
+        }
+      } else if (student.studyingClass === '12') {
+        class12Count++;
+        if (student.medium === 'English') {
+          class12EnglishCount++;
+          if (qpType === 'A') class12EnglishTypeA++;
+          else class12EnglishTypeB++;
+        } else if (student.medium === 'Malayalam') {
+          class12MalayalamCount++;
+          if (qpType === 'A') class12MalayalamTypeA++;
+          else class12MalayalamTypeB++;
+        }
+      }
       
       // Count gender
       if (student.gender === 'Male') {
@@ -375,18 +369,32 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
       }
     });
 
-    const studentsPerPage = 20;
+    let maxRows = 20;
+    let separateSummaryPage = false;
     const studentPages = [];
-    for (let i = 0; i < students.length; i += studentsPerPage) {
-      studentPages.push(students.slice(i, i + studentsPerPage));
+
+    if (students.length <= 20) {
+      studentPages.push(students);
+      maxRows = 20;
+      separateSummaryPage = false;
+    } else {
+      studentPages.push(students.slice(0, 30));
+      maxRows = 30;
+      separateSummaryPage = true;
+      
+      for (let i = 30; i < students.length; i += 30) {
+        studentPages.push(students.slice(i, i + 30));
+      }
     }
 
     const templateData = {
       roomNo,
       studentPages: studentPages,
       totalStudents: students.length,
+      maxRows,
+      separateSummaryPage,
       generationDate: new Date().toLocaleDateString("en-IN"),
-      examDate: "01-03-2026",
+      examDate: "28-06-2026",
       examTime: "10:00 AM - 11:30 PM",
       isPreview: req.query.preview !== "false",
       autoPrint: req.query.print === "true",
@@ -402,7 +410,27 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
         totalTypeB: englishTypeB + malayalamTypeB,
         maleCount,
         femaleCount,
-        otherCount
+        otherCount,
+        class10Count,
+        class12Count,
+        // Class 10 details
+        class10EnglishCount,
+        class10MalayalamCount,
+        class10EnglishTypeA,
+        class10EnglishTypeB,
+        class10MalayalamTypeA,
+        class10MalayalamTypeB,
+        class10TotalTypeA: class10EnglishTypeA + class10MalayalamTypeA,
+        class10TotalTypeB: class10EnglishTypeB + class10MalayalamTypeB,
+        // Class 12 details
+        class12EnglishCount,
+        class12MalayalamCount,
+        class12EnglishTypeA,
+        class12EnglishTypeB,
+        class12MalayalamTypeA,
+        class12MalayalamTypeB,
+        class12TotalTypeA: class12EnglishTypeA + class12MalayalamTypeA,
+        class12TotalTypeB: class12EnglishTypeB + class12MalayalamTypeB
       }
     };
 
@@ -435,7 +463,7 @@ router.get("/exam-slips/:roomNo", async (req, res) => {
       isDeleted: false,
     })
       .select(
-        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address",
+        "name registrationCode seatNo studyingClass fatherName gender medium aadhaarNo schoolName phoneNo address examType",
       )
       .sort({ seatNo: 1 });
 
@@ -457,7 +485,7 @@ router.get("/exam-slips/:roomNo", async (req, res) => {
       studentPages: studentPages,
       totalStudents: students.length,
       generationDate: new Date().toLocaleDateString("en-IN"),
-      examDate: "01-03-2026",
+      examDate: "28-06-2026",
       examTime: "10:00 AM - 11:30 PM",
       examCenter: "PPM HSS Kottukkara",
       isPreview: req.query.preview !== "false",
@@ -491,7 +519,7 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       roomNo,
       isDeleted: false,
     })
-      .select("name registrationCode seatNo studyingClass medium")
+      .select("name registrationCode seatNo studyingClass medium examType")
       .sort({ seatNo: 1 });
 
     if (!students || students.length === 0) {
@@ -501,10 +529,10 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       });
     }
 
-    // Add qpType to each student based on seat number (odd = A, even = B)
+    // Add qpType to each student based on database-saved examType
     const studentsWithQPType = students.map(student => {
       const studentObj = student.toObject();
-      studentObj.qpType = (student.seatNo % 2 === 1) ? 'A' : 'B';
+      studentObj.qpType = student.examType || 'A';
       return studentObj;
     });
 
@@ -542,7 +570,7 @@ router.get("/overall-summary/pdf", async (req, res) => {
     const allStudents = await Student.find({
       isDeleted: false,
     })
-      .select("medium gender registrationCode name seatNo roomNo");
+      .select("medium gender registrationCode name seatNo roomNo examType studyingClass");
 
     if (!allStudents || allStudents.length === 0) {
       return res.status(404).json({
@@ -561,6 +589,10 @@ router.get("/overall-summary/pdf", async (req, res) => {
     let malayalamFemale = 0;
     let malayalamOther = 0;
     
+    // Class counts
+    let class10Count = 0;
+    let class12Count = 0;
+    
     // For QP type calculation (alternating by student order)
     let englishTypeA = 0;
     let englishTypeB = 0;
@@ -570,8 +602,15 @@ router.get("/overall-summary/pdf", async (req, res) => {
     // Room wise distribution with QP types
     const roomDistribution = {};
 
-    allStudents.forEach((student, index) => {
-      const qpType = (index % 2 === 0) ? 'A' : 'B';
+    allStudents.forEach((student) => {
+      const qpType = student.examType || 'A';
+      
+      // Count overall class
+      if (student.studyingClass === '10') {
+        class10Count++;
+      } else if (student.studyingClass === '12') {
+        class12Count++;
+      }
       
       // Track room distribution
       if (student.roomNo) {
@@ -588,10 +627,18 @@ router.get("/overall-summary/pdf", async (req, res) => {
             englishTypeA: 0,
             englishTypeB: 0,
             malayalamTypeA: 0,
-            malayalamTypeB: 0
+            malayalamTypeB: 0,
+            class10: 0,
+            class12: 0
           };
         }
         roomDistribution[student.roomNo].total++;
+        
+        if (student.studyingClass === '10') {
+          roomDistribution[student.roomNo].class10++;
+        } else if (student.studyingClass === '12') {
+          roomDistribution[student.roomNo].class12++;
+        }
         
         // Track QP Type per room
         if (qpType === 'A') {
@@ -699,7 +746,9 @@ router.get("/overall-summary/pdf", async (req, res) => {
         totalMalayalamStudents: malayalamMale + malayalamFemale + malayalamOther,
         totalMale: englishMale + malayalamMale,
         totalFemale: englishFemale + malayalamFemale,
-        totalOther: englishOther + malayalamOther
+        totalOther: englishOther + malayalamOther,
+        class10Count,
+        class12Count
       },
       rooms: rooms,
       totalRooms: rooms.length

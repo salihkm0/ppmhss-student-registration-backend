@@ -138,14 +138,14 @@
             display: none; /* Completely hide the boxes */
         }
         
-        /* Column widths */
         .sl-no { width: 3%; }
         .reg-no { width: 8%; }
-        .student-name { width: 20%; }
-        .aadhaar-no { width: 12%; }
-        .medium { width: 8%; }
-        .qp-type { width: 5%; }
-        .signature { width: 16%; }
+        .student-name { width: 17%; }
+        .aadhaar-no { width: 10%; }
+        .medium { width: 7%; }
+        .class { width: 7%; }
+        .qp-type { width: 6%; }
+        .signature { width: 15%; }
         .attendance { width: 8%; }
         .mark { width: 8%; }
         
@@ -465,6 +465,9 @@
         
         // Calculate total students across all pages for consistent alternation
         let globalIndex = 0;
+        
+        const safeMaxRows = typeof maxRows !== 'undefined' ? maxRows : (safeTotalStudents > 20 ? 30 : 20);
+        const safeSeparateSummaryPage = typeof separateSummaryPage !== 'undefined' ? separateSummaryPage : (safeTotalStudents > 20);
     %>
     
     <% if (safeStudentPages && safeStudentPages.length > 0) { %>
@@ -495,6 +498,7 @@
                                 <th class="student-name">Candidate Name</th>
                                 <th class="aadhaar-no">Aadhaar No</th>
                                 <th class="medium">Medium</th>
+                                <th class="class">Class</th>
                                 <th class="qp-type">QP Type</th>
                                 <th class="signature">Signature</th>
                                 <th class="attendance">P/A</th>
@@ -503,8 +507,8 @@
                         </thead>
                         <tbody>
                             <% pageStudents.forEach((student, index) => { 
-                                const slNo = pageIndex * 20 + index + 1;
-                                const qpType = getQuestionPaperType(globalIndex);
+                                const slNo = pageIndex * safeMaxRows + index + 1;
+                                const qpType = student.examType || '';
                                 globalIndex++; // Increment global index for next student
                                 
                                 // Format Aadhaar number to show last 6 digits only
@@ -526,6 +530,9 @@
                                 <td class="medium medium-cell">
                                     <%= student.medium ? student.medium : '-' %>
                                 </td>
+                                <td class="class class-cell" style="text-align: center; font-weight: bold;">
+                                    <%= student.studyingClass ? student.studyingClass : '-' %>
+                                </td>
                                 <td class="qp-type qp-type-cell">
                                     <strong><%= qpType %></strong>
                                 </td>
@@ -541,18 +548,19 @@
                             </tr>
                             <% }) %>
                             
-                            <!-- Fill remaining rows if less than 20 - COMPLETELY TRANSPARENT -->
-                            <% if (pageStudents.length < 20) { %>
-                                <% for (let i = pageStudents.length; i < 20; i++) { 
+                            <!-- Fill remaining rows - COMPLETELY TRANSPARENT -->
+                            <% if (pageStudents.length < safeMaxRows) { %>
+                                <% for (let i = pageStudents.length; i < safeMaxRows; i++) { 
                                     // Still increment globalIndex to maintain sequence
                                     globalIndex++;
                                 %>
                                 <tr class="empty-row">
-                                    <td class="sl-no"><%= pageIndex * 20 + i + 1 %></td>
+                                    <td class="sl-no"><%= pageIndex * safeMaxRows + i + 1 %></td>
                                     <td class="reg-no"></td>
                                     <td class="student-name student-name-cell"></td>
                                     <td class="aadhaar-no aadhaar-cell"></td>
                                     <td class="medium medium-cell"></td>
+                                    <td class="class class-cell"></td>
                                     <td class="qp-type qp-type-cell"></td>
                                     <td class="signature"></td>
                                     <td class="attendance"></td>
@@ -565,6 +573,7 @@
                 </div>
 
                 <!-- Invigilator Section -->
+                <% if (!safeSeparateSummaryPage && pageIndex === safeStudentPages.length - 1) { %>
                 <div class="invigilator-section">
                     <div class="invigilator-container">
                         <div class="invigilator-right">
@@ -573,81 +582,87 @@
                         </div>
                     </div>
                 </div>
+                <% } %>
 
-                <!-- Medium & QP Type Summary Table -->
-                <div class="summary-section">
-                    <div class="summary-title">MEDIUM & QUESTION PAPER TYPE SUMMARY</div>
-                    <table class="summary-table">
-                        <thead>
-                            <tr>
-                                <th>Medium</th>
-                                <th>Total Students</th>
-                                <th>QP Type A</th>
-                                <th>QP Type B</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="medium-label">English</td>
-                                <td><%= safeSummary.englishCount %></td>
-                                <td><%= safeSummary.englishTypeA %></td>
-                                <td><%= safeSummary.englishTypeB %></td>
-                            </tr>
-                            <tr>
-                                <td class="medium-label">Malayalam</td>
-                                <td><%= safeSummary.malayalamCount %></td>
-                                <td><%= safeSummary.malayalamTypeA %></td>
-                                <td><%= safeSummary.malayalamTypeB %></td>
-                            </tr>
-                            <tr class="total-row">
-                                <td class="medium-label">TOTAL</td>
-                                <td><%= safeSummary.englishCount + safeSummary.malayalamCount %></td>
-                                <td><%= safeSummary.totalTypeA %></td>
-                                <td><%= safeSummary.totalTypeB %></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Medium & QP Type Summary Tables for Class 10 & 12 -->
+                <% if (!safeSeparateSummaryPage && pageIndex === safeStudentPages.length - 1) { %>
+                <div class="summary-section" style="display: flex; gap: 4mm;">
+                    <div style="flex: 1;">
+                        <div class="summary-title" style="font-size: 8.5pt;">MEDIUM & QP TYPE SUMMARY (CLASS 10)</div>
+                        <table class="summary-table" style="font-size: 8pt; margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Medium</th>
+                                    <th>Total Students</th>
+                                    <th>QP Type A</th>
+                                    <th>QP Type B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="medium-label">English</td>
+                                    <td><%= safeSummary.class10EnglishCount || 0 %></td>
+                                    <td><%= safeSummary.class10EnglishTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10EnglishTypeB || 0 %></td>
+                                </tr>
+                                <tr>
+                                    <td class="medium-label">Malayalam</td>
+                                    <td><%= safeSummary.class10MalayalamCount || 0 %></td>
+                                    <td><%= safeSummary.class10MalayalamTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10MalayalamTypeB || 0 %></td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="medium-label">TOTAL</td>
+                                    <td><%= (safeSummary.class10EnglishCount || 0) + (safeSummary.class10MalayalamCount || 0) %></td>
+                                    <td><%= safeSummary.class10TotalTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10TotalTypeB || 0 %></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="summary-title" style="font-size: 8.5pt;">MEDIUM & QP TYPE SUMMARY (CLASS 12)</div>
+                        <table class="summary-table" style="font-size: 8pt; margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Medium</th>
+                                    <th>Total Students</th>
+                                    <th>QP Type A</th>
+                                    <th>QP Type B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="medium-label">English</td>
+                                    <td><%= safeSummary.class12EnglishCount || 0 %></td>
+                                    <td><%= safeSummary.class12EnglishTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12EnglishTypeB || 0 %></td>
+                                </tr>
+                                <tr>
+                                    <td class="medium-label">Malayalam</td>
+                                    <td><%= safeSummary.class12MalayalamCount || 0 %></td>
+                                    <td><%= safeSummary.class12MalayalamTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12MalayalamTypeB || 0 %></td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="medium-label">TOTAL</td>
+                                    <td><%= (safeSummary.class12EnglishCount || 0) + (safeSummary.class12MalayalamCount || 0) %></td>
+                                    <td><%= safeSummary.class12TotalTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12TotalTypeB || 0 %></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
-                <!-- Gender Summary Table -->
-                <!-- <div style="margin-top: 2mm;">
-                    <div class="summary-title">GENDER SUMMARY</div>
-                    <table class="gender-summary">
-                        <thead>
-                            <tr>
-                                <th>Gender</th>
-                                <th>Count</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="gender-label">Male</td>
-                                <td><%= safeSummary.maleCount %></td>
-                            </tr>
-                            <tr>
-                                <td class="gender-label">Female</td>
-                                <td><%= safeSummary.femaleCount %></td>
-                            </tr>
-                            <% if (safeSummary.otherCount > 0) { %>
-                            <tr>
-                                <td class="gender-label">Other</td>
-                                <td><%= safeSummary.otherCount %></td>
-                            </tr>
-                            <% } %>
-                            <tr class="total-row">
-                                <td class="gender-label">TOTAL</td>
-                                <td><%= safeSummary.maleCount + safeSummary.femaleCount + safeSummary.otherCount %></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div> -->
-
-                
-
+                <% } %>
                 <!-- Footer -->
                 <div class="footer-section">
                     <div class="footer-info">
-                        <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
+                        <% if (safeSeparateSummaryPage) { %>
+                            <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length + 1 %></strong></div>
+                        <% } else { %>
+                            <div>Page: <strong><%= pageIndex + 1 %> of <%= safeStudentPages.length %></strong></div>
+                        <% } %>
                         <div style="display: flex; gap: 10px;">
                             <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
                             <div>Male: <strong><%= safeSummary.maleCount %></strong></div>
@@ -662,6 +677,122 @@
                 </div>
             </div>
         <% }) %>
+
+        <% if (safeSeparateSummaryPage) { %>
+            <div class="page-container page-break">
+                <!-- Watermark for summary page -->
+                <div class="watermark">PPMHSS KOTTUKKARA</div>
+                
+                <!-- Header -->
+                <div class="header-section">
+                    <div class="organization-name">NMEA TENDER SCHOLAR 26</div>
+                    <div class="school-name">PPMHSS KOTTUKKARA</div>
+                    <div class="sheet-title">ATTENDANCE SHEET SUMMARY</div>
+                    <div class="room-info">
+                        Room No: <strong><%= safeRoomNo %></strong> | 
+                        Date: <strong><%= safeExamDate %></strong> | 
+                        Time: <strong><%= safeExamTime %></strong>
+                    </div>
+                </div>
+
+                <!-- Invigilator Section -->
+                <div class="invigilator-section" style="margin-top: 10mm; margin-bottom: 10mm;">
+                    <div class="invigilator-container">
+                        <div class="invigilator-right">
+                            <div class="invigilator-label">Invigilator Name & Signature:</div>
+                            <div class="invigilator-signature-line" style="margin-top: 10mm;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medium & QP Type Summary Tables for Class 10 & 12 -->
+                <div class="summary-section" style="display: flex; gap: 4mm; margin-top: 10mm;">
+                    <div style="flex: 1;">
+                        <div class="summary-title" style="font-size: 8.5pt;">MEDIUM & QP TYPE SUMMARY (CLASS 10)</div>
+                        <table class="summary-table" style="font-size: 8pt; margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Medium</th>
+                                    <th>Total Students</th>
+                                    <th>QP Type A</th>
+                                    <th>QP Type B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="medium-label">English</td>
+                                    <td><%= safeSummary.class10EnglishCount || 0 %></td>
+                                    <td><%= safeSummary.class10EnglishTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10EnglishTypeB || 0 %></td>
+                                </tr>
+                                <tr>
+                                    <td class="medium-label">Malayalam</td>
+                                    <td><%= safeSummary.class10MalayalamCount || 0 %></td>
+                                    <td><%= safeSummary.class10MalayalamTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10MalayalamTypeB || 0 %></td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="medium-label">TOTAL</td>
+                                    <td><%= (safeSummary.class10EnglishCount || 0) + (safeSummary.class10MalayalamCount || 0) %></td>
+                                    <td><%= safeSummary.class10TotalTypeA || 0 %></td>
+                                    <td><%= safeSummary.class10TotalTypeB || 0 %></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="summary-title" style="font-size: 8.5pt;">MEDIUM & QP TYPE SUMMARY (CLASS 12)</div>
+                        <table class="summary-table" style="font-size: 8pt; margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Medium</th>
+                                    <th>Total Students</th>
+                                    <th>QP Type A</th>
+                                    <th>QP Type B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="medium-label">English</td>
+                                    <td><%= safeSummary.class12EnglishCount || 0 %></td>
+                                    <td><%= safeSummary.class12EnglishTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12EnglishTypeB || 0 %></td>
+                                </tr>
+                                <tr>
+                                    <td class="medium-label">Malayalam</td>
+                                    <td><%= safeSummary.class12MalayalamCount || 0 %></td>
+                                    <td><%= safeSummary.class12MalayalamTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12MalayalamTypeB || 0 %></td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="medium-label">TOTAL</td>
+                                    <td><%= (safeSummary.class12EnglishCount || 0) + (safeSummary.class12MalayalamCount || 0) %></td>
+                                    <td><%= safeSummary.class12TotalTypeA || 0 %></td>
+                                    <td><%= safeSummary.class12TotalTypeB || 0 %></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer-section">
+                    <div class="footer-info">
+                        <div>Page: <strong><%= safeStudentPages.length + 1 %> of <%= safeStudentPages.length + 1 %></strong></div>
+                        <div style="display: flex; gap: 10px;">
+                            <div>Total Students: <strong><%= safeTotalStudents %></strong></div>
+                            <div>Male: <strong><%= safeSummary.maleCount %></strong></div>
+                            <div>Female: <strong><%= safeSummary.femaleCount  %></strong></div>
+                        </div>
+                        <div>Generated: <%= safeGenerationDate %></div>
+                    </div>
+                    <div style="margin-top: 1mm; font-style: italic;">
+                        Note: 'P' for Present, 'A' for Absent. QP Type A/B alternates by seat number.
+                        Invigilators must sign after verifying attendance.
+                    </div>
+                </div>
+            </div>
+        <% } %>
     <% } else { %>
         <div class="page-container">
             <div class="no-data">

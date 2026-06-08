@@ -75,7 +75,7 @@
         /* Summary Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 3mm;
             margin-bottom: 6mm;
         }
@@ -304,6 +304,16 @@
                 <div class="stat-sub">Across <%= safeTotalRooms %> Rooms</div>
             </div>
             <div class="stat-card">
+                <div class="stat-label">Class 10th Students</div>
+                <div class="stat-value"><%= safeSummary.class10Count || 0 %></div>
+                <div class="stat-sub">Registered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Class 12th Students</div>
+                <div class="stat-value"><%= safeSummary.class12Count || 0 %></div>
+                <div class="stat-sub">Registered</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-label">English Medium</div>
                 <div class="stat-value"><%= safeSummary.totalEnglishStudents || 0 %></div>
                 <div class="stat-sub">Male: <%= safeSummary.englishMale || 0 %>, Female: <%= safeSummary.englishFemale || 0 %></div>
@@ -397,20 +407,19 @@
                 <tr>
                     <th rowspan="2">Room No</th>
                     <th rowspan="2">Total</th>
+                    <th colspan="2">Class</th>
                     <th colspan="2">Medium</th>
                     <th colspan="2">Gender</th>
-                    <!-- <th colspan="2">QP Type</th> -->
                     <th colspan="2">English QP</th>
                     <th colspan="2">Malayalam QP</th>
                 </tr>
                 <tr>
+                    <th>10th</th>
+                    <th>12th</th>
                     <th>Eng</th>
                     <th>Mal</th>
                     <th>M</th>
                     <th>F</th>
-                    <!-- <th>O</th> -->
-                    <!-- <th>A</th> -->
-                    <!-- <th>B</th> -->
                     <th>A</th>
                     <th>B</th>
                     <th>A</th>
@@ -423,13 +432,12 @@
                     <tr>
                         <td><strong><%= room.roomNo %></strong></td>
                         <td><%= room.total || 0 %></td>
+                        <td><%= room.class10 || 0 %></td>
+                        <td><%= room.class12 || 0 %></td>
                         <td><%= room.english || 0 %></td>
                         <td><%= room.malayalam || 0 %></td>
                         <td><%= room.male || 0 %></td>
                         <td><%= room.female || 0 %></td>
-                        <!-- <td><%= room.other || 0 %></td> -->
-                        <!-- <td><%= room.typeA || 0 %></td> -->
-                        <!-- <td><%= room.typeB || 0 %></td> -->
                         <td><%= room.englishTypeA || 0 %></td>
                         <td><%= room.englishTypeB || 0 %></td>
                         <td><%= room.malayalamTypeA || 0 %></td>
@@ -439,13 +447,12 @@
                     <tr class="total-row">
                         <td><strong>TOTAL</strong></td>
                         <td><%= safeTotalStudents %></td>
+                        <td><%= (safeSummary.class10Count || 0) %></td>
+                        <td><%= (safeSummary.class12Count || 0) %></td>
                         <td><%= (safeSummary.totalEnglishStudents || 0) %></td>
                         <td><%= (safeSummary.totalMalayalamStudents || 0) %></td>
                         <td><%= (safeSummary.totalMale || 0) %></td>
                         <td><%= (safeSummary.totalFemale || 0) %></td>
-                        <!-- <td><%= (safeSummary.totalOther || 0) %></td> -->
-                        <!-- <td><%= (safeSummary.totalTypeA || 0) %></td> -->
-                        <!-- <td><%= (safeSummary.totalTypeB || 0) %></td> -->
                         <td><%= (safeSummary.englishTypeA || 0) %></td>
                         <td><%= (safeSummary.englishTypeB || 0) %></td>
                         <td><%= (safeSummary.malayalamTypeA || 0) %></td>
@@ -453,7 +460,7 @@
                     </tr>
                 <% } else { %>
                     <tr>
-                        <td colspan="13" style="text-align: center; padding: 5mm;">No room data available</td>
+                        <td colspan="12" style="text-align: center; padding: 5mm;">No room data available</td>
                     </tr>
                 <% } %>
             </tbody>
@@ -462,6 +469,7 @@
         <!-- Summary Notes -->
         <div style="margin-top: 5mm; font-size: 9pt;">
             <p><strong>Summary:</strong> Total <%= safeTotalStudents %> students across <%= safeTotalRooms %> rooms.</p>
+            <p>Class 10th: <%= safeSummary.class10Count || 0 %> students | Class 12th (+2): <%= safeSummary.class12Count || 0 %> students</p>
             <p>English Medium: <%= safeSummary.totalEnglishStudents || 0 %> students (Male: <%= safeSummary.englishMale || 0 %>, Female: <%= safeSummary.englishFemale || 0 %>)</p>
             <p>Malayalam Medium: <%= safeSummary.totalMalayalamStudents || 0 %> students (Male: <%= safeSummary.malayalamMale || 0 %>, Female: <%= safeSummary.malayalamFemale || 0 %>)</p>
             <p>Question Papers Required: Type A - <%= safeSummary.totalTypeA || 0 %>, Type B - <%= safeSummary.totalTypeB || 0 %></p>

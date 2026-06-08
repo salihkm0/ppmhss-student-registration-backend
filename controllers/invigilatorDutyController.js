@@ -551,8 +551,8 @@ exports.getAvailableRoomsForDuty = async (req, res) => {
                 return {
                     roomNo: room._id,
                     studentCount: room.studentCount,
-                    capacity: 20,
-                    availableSeats: 20 - room.studentCount,
+                    capacity: 30,
+                    availableSeats: 30 - room.studentCount,
                     isAssigned,
                     genderCounts: genderAggregation
                 };

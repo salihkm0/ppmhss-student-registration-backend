@@ -57,24 +57,37 @@ const getNextApplicationNo = async (req, res) => {
 };
 
 // Get next registration code
+// Get next registration code
 const getNextRegistrationCode = async (req, res) => {
     try {
-        const lastStudent = await Student.findOne({ isDeleted: false }, {}, { sort: { 'registrationCode': -1 } });
+        const { studyingClass } = req.query;
+        const cls = studyingClass === '12' ? '12' : '10';
+        const startNum = cls === '10' ? 2000 : 3000;
         
-        let nextNumber = 1000;
+        const lastStudent = await Student.findOne(
+            { 
+                studyingClass: cls,
+                isDeleted: false,
+                registrationCode: { $regex: '^NMEA' }
+            }, 
+            {}, 
+            { sort: { 'registrationCode': -1 } }
+        );
+        
+        let nextNumber = startNum;
         
         if (lastStudent && lastStudent.registrationCode) {
             const lastRegCode = lastStudent.registrationCode;
-            const match = lastRegCode.match(/PPM(\d+)/);
+            const match = lastRegCode.match(/NMEA(\d+)/);
             if (match && match[1]) {
                 const lastNumber = parseInt(match[1]);
-                if (!isNaN(lastNumber) && lastNumber >= 1000) {
+                if (!isNaN(lastNumber) && lastNumber >= startNum) {
                     nextNumber = lastNumber + 1;
                 }
             }
         }
         
-        const nextRegCode = `PPM${nextNumber}`;
+        const nextRegCode = `NMEA${nextNumber}`;
         
         res.json({
             success: true,
@@ -94,18 +107,79 @@ const getNextRegistrationCode = async (req, res) => {
 // Get next room allocation
 const getNextRoomAllocation = async (req, res) => {
     try {
+        const { studyingClass } = req.query; // '10' or '12'
+
+        if (!studyingClass || !['10', '12'].includes(studyingClass)) {
+            return res.status(400).json({
+                success: false,
+                error: 'studyingClass query param is required (10 or 12)'
+            });
+        }
+
+        const STUDENTS_PER_ROOM = 30;
+        const DESKS_PER_ROOM    = 10;
+        const STUDENTS_PER_DESK = 3;
+
+        // Seat numbers valid for this class
+        const seatsForClass = (cls) => {
+            const seats = [];
+            for (let desk = 1; desk <= DESKS_PER_ROOM; desk++) {
+                const base = (desk - 1) * STUDENTS_PER_DESK;
+                if (cls === '10') { seats.push(base + 1); seats.push(base + 3); }
+                else if (cls === '12') { seats.push(base + 2); }
+            }
+            return seats;
+        };
+
+        const examTypeForSeat = (seatNo) => {
+            const deskPos = ((seatNo - 1) % STUDENTS_PER_DESK) + 1;
+            if (deskPos === 1) return 'A'; // 10th left
+            if (deskPos === 3) return 'B'; // 10th right
+            // 12th center: alternate A/B by desk (odd=A, even=B)
+            const deskNo = Math.ceil(seatNo / STUDENTS_PER_DESK);
+            return deskNo % 2 === 1 ? 'A' : 'B';
+        };
+
+        // Find partially-filled rooms first
+        const roomOccupancy = await Student.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: '$roomNo', count: { $sum: 1 }, occupiedSeats: { $push: '$seatNo' } } },
+            { $match: { count: { $lt: STUDENTS_PER_ROOM } } },
+            { $sort: { _id: 1 } }
+        ]);
+
+        let roomNo, seatNo;
+        let found = false;
+
+        for (const room of roomOccupancy) {
+            const occupiedSet = new Set(room.occupiedSeats);
+            const candidates = seatsForClass(studyingClass);
+            const available = candidates.find(s => !occupiedSet.has(s));
+            if (available !== undefined) {
+                roomNo = room._id;
+                seatNo = available;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            const maxRoom = await Student.findOne({ isDeleted: false }).sort({ roomNo: -1 }).select('roomNo');
+            roomNo = maxRoom ? maxRoom.roomNo + 1 : 1;
+            seatNo = seatsForClass(studyingClass)[0];
+        }
+
+        const examType = examTypeForSeat(seatNo);
         const totalStudents = await Student.countDocuments({ isDeleted: false });
-        const studentsPerRoom = 20;
-        
-        const roomNo = Math.floor(totalStudents / studentsPerRoom) + 1;
-        const seatNo = (totalStudents % studentsPerRoom) + 1;
-        
+
         res.json({
             success: true,
             data: {
                 roomNo,
                 seatNo,
-                totalStudents
+                examType,
+                totalStudents,
+                studyingClass
             }
         });
     } catch (error) {
@@ -391,12 +465,16 @@ const getRoomDistribution = async (req, res) => {
                 $group: {
                     _id: "$roomNo",
                     count: { $sum: 1 },
+                    class10Count: { $sum: { $cond: [{ $eq: ['$studyingClass', '10'] }, 1, 0] } },
+                    class12Count: { $sum: { $cond: [{ $eq: ['$studyingClass', '12'] }, 1, 0] } },
                     students: {
                         $push: {
                             name: "$name",
                             registrationCode: "$registrationCode",
                             applicationNo: "$applicationNo",
-                            seatNo: "$seatNo"
+                            seatNo: "$seatNo",
+                            studyingClass: "$studyingClass",
+                            examType: "$examType"
                         }
                     }
                 }
@@ -406,6 +484,8 @@ const getRoomDistribution = async (req, res) => {
                 $project: {
                     roomNo: "$_id",
                     count: 1,
+                    class10Count: 1,
+                    class12Count: 1,
                     students: {
                         $sortArray: { input: "$students", sortBy: { seatNo: 1 } }
                     },
@@ -422,7 +502,8 @@ const getRoomDistribution = async (req, res) => {
                 distribution,
                 totalStudents,
                 roomsOccupied: distribution.length,
-                studentsPerRoom: 20
+                studentsPerRoom: 30,
+                desksPerRoom: 10
             }
         });
     } catch (error) {
@@ -450,7 +531,7 @@ const getStudentsByRoom = async (req, res) => {
       roomNo: parseInt(roomNo),
       isDeleted: false 
     })
-    .select('name registrationCode seatNo gender studyingClass fatherName')
+    .select('name registrationCode seatNo gender studyingClass fatherName examType')
     .sort({ seatNo: 1 });
 
     if (!students.length) {
@@ -461,8 +542,11 @@ const getStudentsByRoom = async (req, res) => {
     }
 
     const genderCounts = {};
+    let class10Count = 0, class12Count = 0;
     students.forEach(student => {
       genderCounts[student.gender] = (genderCounts[student.gender] || 0) + 1;
+      if (student.studyingClass === '10') class10Count++;
+      if (student.studyingClass === '12') class12Count++;
     });
 
     const genderStats = Object.entries(genderCounts).map(([gender, count]) => ({
@@ -475,10 +559,13 @@ const getStudentsByRoom = async (req, res) => {
       data: {
         roomNo: parseInt(roomNo),
         studentCount: students.length,
-        availableSeats: 20 - students.length,
+        availableSeats: 30 - students.length,
+        class10Count,
+        class12Count,
         genderCounts: genderStats,
         students: students
       }
+
     });
   } catch (error) {
     console.error('Error fetching room students:', error);
