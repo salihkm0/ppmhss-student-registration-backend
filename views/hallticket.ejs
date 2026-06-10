@@ -546,6 +546,12 @@
                     <th>Aadhaar No</th>
                     <td><%= student.formattedAadhaar || student.aadhaarNo || 'Not provided' %></td>
                 </tr>
+                <tr>
+                    <th>Date of Birth</th>
+                    <td><%= student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : 'Not provided' %></td>
+                    <th>Last Public Exam Reg No</th>
+                    <td><%= student.lastPublicExamRegNo || 'Not applicable' %></td>
+                </tr>
             </table>
             
             <!-- Official Signatures Section -->

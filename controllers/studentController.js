@@ -623,6 +623,8 @@ const registerStudent = async (req, res) => {
                 seatNo: student.seatNo,
                 studyingClass: student.studyingClass,
                 registrationsFromPhone: registrationsFromPhone,
+                dob: student.dob,
+                lastPublicExamRegNo: student.lastPublicExamRegNo,
             }
         });
     } catch (error) {
@@ -701,7 +703,8 @@ const updateStudent = async (req, res) => {
             'aadhaarNo',
             'phoneNo',
             'gender',
-            'dateOfBirth',
+            'dob',
+            'lastPublicExamRegNo',
             'schoolName',
             'studyingClass',
             'medium',

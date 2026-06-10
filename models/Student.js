@@ -762,6 +762,14 @@ const studentSchema = new mongoose.Schema({
         enum: ['Male', 'Female', 'Other'],
         required: [true, 'Gender is required']
     },
+    dob: {
+        type: Date,
+        required: [true, 'Date of birth is required']
+    },
+    lastPublicExamRegNo: {
+        type: String,
+        default: ''
+    },
     fatherName: {
         type: String,
         required: [true, "Father's name is required"],
