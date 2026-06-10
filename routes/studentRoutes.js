@@ -8,6 +8,8 @@ const auth = require('../middleware/auth');
 const validateStudent = [
     body('name').notEmpty().withMessage('Name is required').trim(),
     body('gender').isIn(['Male', 'Female', 'Other']).withMessage('Invalid gender'),
+    body('dob').notEmpty().withMessage('Date of birth is required').isISO8601().withMessage('Invalid date of birth format'),
+    body('lastPublicExamRegNo').optional().trim(),
     body('fatherName').notEmpty().withMessage("Father's name is required").trim(),
     body('aadhaarNo')
         .matches(/^\d{12}$/)
