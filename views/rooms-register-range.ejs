@@ -68,10 +68,11 @@
         }
         
         .room-number {
-            font-size: 320px;
+            font-size: 260px !important;
             font-weight: bold;
+            line-height: 1.5 !important;
             /* letter-spacing: 2px; */
-            margin:0 ;
+            margin:0;
             padding: 0;
         }
         
@@ -94,7 +95,7 @@
         
         .range-box {
             width: 100%;
-            padding: 2mm 5mm;
+            padding: 2mm 2mm;
             border: 3px solid #000;
             text-align: center;
             background: #fff;
@@ -222,20 +223,40 @@
         // Function to format registration range
         function formatRegRange(students) {
             if (!students || students.length === 0) {
-                return { first: '---', last: '---', count: 0 };
+                return { class10: null, class12: null, total: 0 };
             }
             
-            // Sort students by registration code
-            const sorted = [...students].sort((a, b) => {
-                const regA = a.registrationCode || '';
-                const regB = b.registrationCode || '';
-                return regA.localeCompare(regB);
+            const class10Students = [];
+            const class12Students = [];
+            
+            students.forEach(s => {
+                if (s.studyingClass === '10' || (s.registrationCode && s.registrationCode.match(/200/))) {
+                    class10Students.push(s);
+                } else if (s.studyingClass === '12' || (s.registrationCode && s.registrationCode.match(/300/))) {
+                    class12Students.push(s);
+                } else {
+                    class10Students.push(s);
+                }
             });
             
+            const processRange = (arr) => {
+                if (arr.length === 0) return null;
+                const sorted = [...arr].sort((a, b) => {
+                    const regA = a.registrationCode || '';
+                    const regB = b.registrationCode || '';
+                    return regA.localeCompare(regB);
+                });
+                return {
+                    first: sorted[0].registrationCode || '---',
+                    last: sorted[sorted.length - 1].registrationCode || '---',
+                    count: sorted.length
+                };
+            };
+            
             return {
-                first: sorted[0].registrationCode || '---',
-                last: sorted[sorted.length - 1].registrationCode || '---',
-                count: sorted.length
+                class10: processRange(class10Students),
+                class12: processRange(class12Students),
+                total: students.length
             };
         }
         
@@ -270,14 +291,27 @@
                     <div class="range-container">
                         <div class="range-box">
                             <div class="range-label">REGISTER NUMBERS</div>
-                            <div class="range-value"><%= leftRange.first %></div>
-                            <div class="to-text">TO</div>
-                            <div class="range-value"><%= leftRange.last %></div>
+                            <% if (leftRange.class10) { %>
+                                <div style="font-size: 14pt; margin-bottom: 2px; font-weight: bold; color: #555;">CLASS 10</div>
+                                <div class="range-value" style="font-size: 24pt;"><%= leftRange.class10.first %> <span style="font-size: 16pt; font-weight: bold; margin: 0 5px;">-</span> <%= leftRange.class10.last %></div>
+                            <% } %>
+                            <% if (leftRange.class10 && leftRange.class12) { %>
+                                <div style="margin: 5px 0; border-bottom: 1px dashed #ccc;"></div>
+                            <% } %>
+                            <% if (leftRange.class12) { %>
+                                <div style="font-size: 14pt; margin-bottom: 2px; margin-top: 5px; font-weight: bold; color: #555;">CLASS 12</div>
+                                <div class="range-value" style="font-size: 24pt;"><%= leftRange.class12.first %> <span style="font-size: 16pt; font-weight: bold; margin: 0 5px;">-</span> <%= leftRange.class12.last %></div>
+                            <% } %>
+                            <% if (!leftRange.class10 && !leftRange.class12) { %>
+                                <div class="range-value">---</div>
+                                <div class="to-text">TO</div>
+                                <div class="range-value">---</div>
+                            <% } %>
                         </div>
                     </div>
                     
                     <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #000; padding-top: 3mm; margin-top: auto;">
-                        Total: <%= leftRange.count %> Students
+                        Total: <%= leftRange.total %> Students
                     </div>
                 </div>
                 <% } else { %>
@@ -300,14 +334,27 @@
                     <div class="range-container">
                         <div class="range-box">
                             <div class="range-label">REGISTER NUMBERS</div>
-                            <div class="range-value"><%= rightRange.first %></div>
-                            <div class="to-text">TO</div>
-                            <div class="range-value"><%= rightRange.last %></div>
+                            <% if (rightRange.class10) { %>
+                                <div style="font-size: 14pt; margin-bottom: 2px; font-weight: bold; color: #555;">CLASS 10</div>
+                                <div class="range-value" style="font-size: 24pt;"><%= rightRange.class10.first %> <span style="font-size: 16pt; font-weight: bold; margin: 0 5px;">-</span> <%= rightRange.class10.last %></div>
+                            <% } %>
+                            <% if (rightRange.class10 && rightRange.class12) { %>
+                                <div style="margin: 5px 0; border-bottom: 1px dashed #ccc;"></div>
+                            <% } %>
+                            <% if (rightRange.class12) { %>
+                                <div style="font-size: 14pt; margin-bottom: 2px; margin-top: 5px; font-weight: bold; color: #555;">CLASS 12</div>
+                                <div class="range-value" style="font-size: 24pt;"><%= rightRange.class12.first %> <span style="font-size: 16pt; font-weight: bold; margin: 0 5px;">-</span> <%= rightRange.class12.last %></div>
+                            <% } %>
+                            <% if (!rightRange.class10 && !rightRange.class12) { %>
+                                <div class="range-value">---</div>
+                                <div class="to-text">TO</div>
+                                <div class="range-value">---</div>
+                            <% } %>
                         </div>
                     </div>
                     
                     <div style="text-align: right; font-size: 16pt; font-weight: bold; border-top: 2px solid #000; padding-top: 3mm; margin-top: auto;">
-                        Total: <%= rightRange.count %> Students
+                        Total: <%= rightRange.total %> Students
                     </div>
                 </div>
                 <% } else if (pair.left) { %>

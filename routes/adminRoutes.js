@@ -375,15 +375,10 @@ router.get("/room-attendance/:roomNo/pdf", async (req, res) => {
 
     if (students.length <= 20) {
       studentPages.push(students);
-      maxRows = 20;
-      separateSummaryPage = false;
     } else {
-      studentPages.push(students.slice(0, 30));
-      maxRows = 30;
-      separateSummaryPage = true;
-      
-      for (let i = 30; i < students.length; i += 30) {
-        studentPages.push(students.slice(i, i + 30));
+      studentPages.push(students.slice(0, 20));
+      for (let i = 20; i < students.length; i += 20) {
+        studentPages.push(students.slice(i, i + 20));
       }
     }
 
@@ -536,7 +531,7 @@ router.get("/simple-exam-slips/:roomNo", async (req, res) => {
       return studentObj;
     });
 
-    const studentsPerPage = 20;
+    const studentsPerPage = 21;
     const studentPages = [];
     for (let i = 0; i < studentsWithQPType.length; i += studentsPerPage) {
       studentPages.push(studentsWithQPType.slice(i, i + studentsPerPage));

@@ -275,68 +275,13 @@ router.get("/export", auth, async (req, res) => {
       .select("-__v")
       .sort({ roomNo: 1, seatNo: 1 });
 
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=students_${Date.now()}.csv`,
-    );
-
-    const headers = [
-      "Registration Code",
-      "Application No",
-      "Name",
-      "Gender",
-      "Father Name",
-      "Aadhaar No",
-      "Phone No",
-      "School",
-      "Class",
-      "Medium",
-      "Room No",
-      "Seat No",
-      "House Name",
-      "Place",
-      "Post Office",
-      "PIN Code",
-      "Local Body Type",
-      "Local Body Name",
-      "Village",
-      "Registration Date",
-    ].join(",");
-
-    const rows = students
-      .map((student) => {
-        return [
-          student.registrationCode,
-          student.applicationNo,
-          student.name,
-          student.gender,
-          student.fatherName,
-          student.aadhaarNo,
-          student.phoneNo,
-          student.schoolName,
-          student.studyingClass,
-          student.medium,
-          student.roomNo,
-          student.seatNo,
-          student.address.houseName,
-          student.address.place,
-          student.address.postOffice,
-          student.address.pinCode,
-          student.address.localBodyType,
-          student.address.localBodyName,
-          student.address.village,
-          new Date(student.createdAt).toLocaleDateString("en-IN"),
-        ]
-          .map((field) => {
-            const fieldStr = String(field || "").replace(/"/g, '""');
-            return `"${fieldStr}"`;
-          })
-          .join(",");
-      })
-      .join("\n");
-
-    res.send(headers + "\n" + rows);
+    const templateData = {
+        students,
+        generationDate: new Date().toLocaleDateString("en-IN"),
+        autoPrint: req.query.print === "true"
+    };
+    
+    return res.render("student-export", templateData);
   } catch (error) {
     console.error("Export error:", error);
     res.status(500).json({
@@ -457,15 +402,10 @@ router.get("/room-attendance/:roomNo/pdf", auth, async (req, res) => {
 
     if (students.length <= 20) {
       studentPages.push(students);
-      maxRows = 20;
-      separateSummaryPage = false;
     } else {
-      studentPages.push(students.slice(0, 30));
-      maxRows = 30;
-      separateSummaryPage = true;
-      
-      for (let i = 30; i < students.length; i += 30) {
-        studentPages.push(students.slice(i, i + 30));
+      studentPages.push(students.slice(0, 20));
+      for (let i = 20; i < students.length; i += 20) {
+        studentPages.push(students.slice(i, i + 20));
       }
     }
 

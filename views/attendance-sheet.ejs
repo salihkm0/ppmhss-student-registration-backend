@@ -97,7 +97,7 @@
             border: 0.5px solid #000;
             text-align: center;
             font-size: 8pt;
-            height: 5mm;
+            height: 8mm;
 
         }
         
@@ -249,7 +249,7 @@
             display: flex;
             justify-content: flex-end;
             width: 100%;
-            margin-top: 4mm;
+            margin-top: 25mm;
         }
         
         .invigilator-signature-line {
@@ -548,41 +548,10 @@
                             </tr>
                             <% }) %>
                             
-                            <!-- Fill remaining rows - COMPLETELY TRANSPARENT -->
-                            <% if (pageStudents.length < safeMaxRows) { %>
-                                <% for (let i = pageStudents.length; i < safeMaxRows; i++) { 
-                                    // Still increment globalIndex to maintain sequence
-                                    globalIndex++;
-                                %>
-                                <tr class="empty-row">
-                                    <td class="sl-no"><%= pageIndex * safeMaxRows + i + 1 %></td>
-                                    <td class="reg-no"></td>
-                                    <td class="student-name student-name-cell"></td>
-                                    <td class="aadhaar-no aadhaar-cell"></td>
-                                    <td class="medium medium-cell"></td>
-                                    <td class="class class-cell"></td>
-                                    <td class="qp-type qp-type-cell"></td>
-                                    <td class="signature"></td>
-                                    <td class="attendance"></td>
-                                    <td class="mark"></td>
-                                </tr>
-                                <% } %>
-                            <% } %>
+                            <!-- Removed empty rows generation as requested -->
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Invigilator Section -->
-                <% if (!safeSeparateSummaryPage && pageIndex === safeStudentPages.length - 1) { %>
-                <div class="invigilator-section">
-                    <div class="invigilator-container">
-                        <div class="invigilator-right">
-                            <div class="invigilator-label">Invigilator Name & Signature:</div>
-                            <div class="invigilator-signature-line"></div>
-                        </div>
-                    </div>
-                </div>
-                <% } %>
 
                 <!-- Medium & QP Type Summary Tables for Class 10 & 12 -->
                 <% if (!safeSeparateSummaryPage && pageIndex === safeStudentPages.length - 1) { %>
@@ -652,6 +621,18 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Invigilator Section -->
+                <% if (!safeSeparateSummaryPage && pageIndex === safeStudentPages.length - 1) { %>
+                <div class="invigilator-section">
+                    <div class="invigilator-container">
+                        <div class="invigilator-right">
+                            <div class="invigilator-label">Invigilator Name & Signature:</div>
+                            <div class="invigilator-signature-line"></div>
+                        </div>
                     </div>
                 </div>
                 <% } %>
@@ -786,7 +767,7 @@
                         </div>
                         <div>Generated: <%= safeGenerationDate %></div>
                     </div>
-                    <div style="margin-top: 1mm; font-style: italic;">
+                    <div style="margin-top: 1mm; font-style: italic;">Invigilator Name & Signature
                         Note: 'P' for Present, 'A' for Absent. QP Type A/B alternates by seat number.
                         Invigilators must sign after verifying attendance.
                     </div>
