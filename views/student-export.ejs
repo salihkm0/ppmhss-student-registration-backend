@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Data Export</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10pt;
+            color: #000;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 5mm;
+            padding-bottom: 2mm;
+            border-bottom: 2px solid #000;
+        }
+        h1 {
+            font-size: 16pt;
+            margin: 0 0 2mm 0;
+            text-transform: uppercase;
+        }
+        h2 {
+            font-size: 12pt;
+            margin: 0;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5mm;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 2mm;
+            text-align: left;
+            font-size: 9pt;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        td {
+            vertical-align: middle;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .room-header-row {
+            background-color: #e0e0e0;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        @media print {
+            .print-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <% if (autoPrint) { %>
+    <script>
+        window.onload = function() { window.print(); }
+    </script>
+    <% } else { %>
+        <button class="print-btn" onclick="window.print()">🖨️ Print Document</button>
+    <% } %>
+
+    <div class="header">
+        <h1>PPMHSS KOTTUKKARA</h1>
+        <h2>Student Data Export</h2>
+        <div style="margin-top: 2mm; font-size: 9pt;">Generated on: <%= generationDate %></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="5%" class="text-center">Sl No</th>
+                <th width="15%">Reg No</th>
+                <th width="25%">Student Name</th>
+                <th width="25%">Father's Name</th>
+                <th width="15%">Phone No</th>
+                <th width="15%">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% 
+            let slNo = 1;
+            let currentRoom = null;
+            students.forEach(function(student) { 
+                // Group by room No
+                if (student.roomNo !== currentRoom) {
+                    currentRoom = student.roomNo;
+            %>
+            <tr class="room-header-row">
+                <td colspan="6">Room No: <%= currentRoom || 'Unassigned' %></td>
+            </tr>
+            <% 
+                // slNo = 1; // Optionally reset Sl No for each room, but continuous is usually better
+                } 
+            %>
+            <tr>
+                <td class="text-center"><%= slNo++ %></td>
+                <td><%= student.registrationCode || 'N/A' %></td>
+                <td><%= student.name %></td>
+                <td><%= student.fatherName || 'N/A' %></td>
+                <td><%= student.phoneNo || 'N/A' %></td>
+                <td></td>
+            </tr>
+            <% }); %>
+            
+            <% if (students.length === 0) { %>
+            <tr>
+                <td colspan="6" class="text-center" style="padding: 10mm;">No students found</td>
+            </tr>
+            <% } %>
+        </tbody>
+    </table>
+</body>
+</html>

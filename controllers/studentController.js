@@ -877,80 +877,14 @@ const exportStudents = async (req, res) => {
         const students = await Student.find(query)
             .select('-__v')
             .sort({ roomNo: 1, seatNo: 1 });
-
-        res.setHeader('Content-Type', 'text/csv');
-        const filename = showDeleted 
-            ? `students_with_deleted_${Date.now()}.csv`
-            : `students_${Date.now()}.csv`;
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename=${filename}`
-        );
-
-        const headers = [
-            'Registration Code',
-            'Application No',
-            'Name',
-            'Gender',
-            'Father Name',
-            'Aadhaar No',
-            'Phone No',
-            'School',
-            'Class',
-            'Medium',
-            'Sub District',
-            'Room No',
-            'Seat No',
-            'House Name',
-            'Place',
-            'Post Office',
-            'PIN Code',
-            'Local Body Type',
-            'Local Body Name',
-            'Village',
-            'Registration Date',
-            'Mark',
-            'Total Marks',
-            'Is Deleted'
-        ].join(',');
-
-        const rows = students
-            .map((student) => {
-                return [
-                    student.registrationCode,
-                    student.applicationNo,
-                    student.name,
-                    student.gender,
-                    student.fatherName,
-                    student.aadhaarNo,
-                    student.phoneNo,
-                    student.schoolName,
-                    student.studyingClass,
-                    student.medium,
-                    student.subDistrict || '',
-                    student.roomNo,
-                    student.seatNo,
-                    student.address.houseName,
-                    student.address.place,
-                    student.address.postOffice,
-                    student.address.pinCode,
-                    student.address.localBodyType,
-                    student.address.localBodyName,
-                    student.address.village,
-                    new Date(student.createdAt).toLocaleDateString('en-IN'),
-                    student.examMarks || '',
-                    student.totalMarks || '',
-                    student.isDeleted ? 'Yes' : 'No'
-                ]
-                    .map((field) => {
-                        const fieldStr = String(field || '').replace(/"/g, '""');
-                        return `"${fieldStr}"`;
-                    })
-                    .join(',');
-            })
-            .join('\n');
-
-        res.send(headers + '\n' + rows);
+        // Render PDF view instead of CSV
+        const templateData = {
+            students,
+            generationDate: new Date().toLocaleDateString("en-IN"),
+            autoPrint: req.query.print === "true"
+        };
+        
+        return res.render("student-export", templateData);
     } catch (error) {
         console.error('Export error:', error);
         res.status(500).json({

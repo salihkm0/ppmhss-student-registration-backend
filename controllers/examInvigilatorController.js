@@ -411,7 +411,8 @@ exports.generateRoomRegisterRange = async (req, res) => {
                     $push: {
                         registrationCode: '$registrationCode',
                         name: '$name',
-                        gender: '$gender'
+                        gender: '$gender',
+                        studyingClass: '$studyingClass'
                     }
                 },
                 maleCount: {

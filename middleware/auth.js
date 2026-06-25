@@ -6,7 +6,7 @@ const auth = (roles = []) => {
     }
 
     return (req, res, next) => {
-        const token = req.header('x-auth-token');
+        const token = req.header('x-auth-token') || req.query.token;
 
         if (!token) {
             return res.status(401).json({
