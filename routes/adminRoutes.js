@@ -137,6 +137,18 @@ router.post(
   adminController.updateRanksAndScholarships,
 );
 
+router.put(
+  "/results/students/:studentId/rank",
+  auth(["admin", "superadmin"]),
+  [
+    body('rank')
+      .isInt({ min: 1 })
+      .withMessage('Rank must be a positive integer')
+      .toInt()
+  ],
+  adminController.adminEditRank,
+);
+
 router.get(
   "/results/top-performers",
   auth(["admin", "superadmin"]),
