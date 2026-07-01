@@ -297,3 +297,69 @@ exports.generateRankList = async (req, res) => {
         });
     }
 };
+// Check result with Registration Code and DOB
+exports.checkResultWithDob = async (req, res) => {
+    try {
+        const { registrationCode, dob } = req.body;
+
+        if (!registrationCode || !dob) {
+            return res.status(400).json({
+                success: false,
+                error: 'Registration Code and Date of Birth are required',
+            });
+        }
+
+        // Find student by reg code and DOB (start and end of the day to avoid timezone mismatches)
+        const dateObj = new Date(dob);
+        const startOfDay = new Date(dateObj.setUTCHours(0, 0, 0, 0));
+        const endOfDay = new Date(dateObj.setUTCHours(23, 59, 59, 999));
+
+        const student = await Student.findOne({
+            registrationCode: registrationCode.trim().toUpperCase(),
+            dob: { $gte: startOfDay, $lte: endOfDay },
+            isDeleted: false
+        }).select('-__v');
+
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                error: 'Invalid Registration Code or Date of Birth',
+            });
+        }
+
+        // We can just format the result like getResultByCode does
+        const resultData = {
+            studentId: student._id,
+            registrationCode: student.registrationCode,
+            examMarks: student.examMarks || 0,
+            totalMarks: student.totalMarks || 50,
+            percentage: student.examMarks ? (student.examMarks / (student.totalMarks || 50)) * 100 : 0,
+            rank: student.rank || 0,
+            resultStatus: student.resultStatus,
+        };
+
+        res.json({
+            success: true,
+            data: {
+                result: resultData,
+                student: {
+                    name: student.name,
+                    fatherName: student.fatherName,
+                    studyingClass: student.studyingClass,
+                    schoolName: student.schoolName,
+                    roomNo: student.roomNo,
+                    seatNo: student.seatNo,
+                    phoneNo: student.phoneNo,
+                    address: student.address,
+                },
+                source: 'Student Collection',
+            },
+        });
+    } catch (error) {
+        console.error('Check result with DOB error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error',
+        });
+    }
+};

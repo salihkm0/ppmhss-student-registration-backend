@@ -1751,6 +1751,56 @@ const bulkUpdateMarks = async (req, res) => {
     }
 };
 
+// Admin manually edit rank
+const adminEditRank = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { rank } = req.body;
+
+        const student = await Student.findById(studentId);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                error: 'Student not found',
+            });
+        }
+
+        if (rank <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Rank must be a positive integer',
+            });
+        }
+
+        // We can just update the rank directly since it's a manual override
+        student.rank = rank;
+        await student.save();
+        
+        // Let's also update the Result collection if it exists
+        const Result = require('../models/Result');
+        await Result.findOneAndUpdate(
+            { studentId: studentId },
+            { rank: rank }
+        );
+
+        res.json({
+            success: true,
+            message: 'Rank updated successfully',
+            data: {
+                studentId: student._id,
+                name: student.name,
+                rank: student.rank,
+            },
+        });
+    } catch (error) {
+        console.error('Admin edit rank error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error: ' + error.message,
+        });
+    }
+};
+
 module.exports = {
     login,
     setupAdmin,
@@ -1769,5 +1819,6 @@ module.exports = {
     getStudentsByMarkStatus,
     getStudentMarkHistory,
     finalizeMarks,
-    bulkUpdateMarks
+    bulkUpdateMarks,
+    adminEditRank
 };
