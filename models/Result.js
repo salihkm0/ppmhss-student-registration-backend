@@ -90,7 +90,7 @@ const resultSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 0,
-        max: 100
+        max: 50
     },
     totalMarks: {
         type: Number,
