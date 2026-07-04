@@ -4,6 +4,7 @@ const resultController = require('../controllers/resultController');
 const auth = require('../middleware/auth');
 
 // Public routes (students can check results)
+router.get('/status', resultController.getResultStatus);
 router.get('/code/:code', resultController.getResultByCode);
 router.get('/phone/:phoneNo', resultController.getResultsByPhone);
 router.get('/top', resultController.getTopResults);

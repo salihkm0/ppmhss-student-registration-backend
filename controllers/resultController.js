@@ -1,6 +1,25 @@
 const Student = require('../models/Student');
 const Result = require('../models/Result');
 
+// Add a status check method
+exports.getResultStatus = async (req, res) => {
+    try {
+        const count = await Result.countDocuments();
+        res.json({
+            success: true,
+            data: {
+                published: count > 0
+            }
+        });
+    } catch (error) {
+        console.error('Error checking result status:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to check result status'
+        });
+    }
+};
+
 // Get result by registration code
 exports.getResultByCode = async (req, res) => {
     try {
